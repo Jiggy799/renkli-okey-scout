@@ -1,0 +1,10 @@
+*.apk
+build/
+.dart_tool/
+.idea/
+*.iml
+.env
+.env.*
+android/
+ios/
+web/
