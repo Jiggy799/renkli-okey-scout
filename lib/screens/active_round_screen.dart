@@ -152,11 +152,13 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
   }
 
   Future<void> _submitPenalty(String playerId, int basisPunkte) async {
+    // jokerFinish wird hier NICHT aufgeschlagen — active_round_screen
+    // ist nur für die Live-Anzeige. Die finale Berechnung mit jokerFinish
+    // passiert in round_result_screen.
     final isCifte = _cifteStatus[playerId] ?? false;
     final penalty = berechneStrafpunkte(
       basisPunkte: basisPunkte,
       tableColor: _selectedColor,
-      jokerFinish: _jokerFinish,
       playerCifteFactor: isCifte,
     );
     final current = (_players.firstWhere(

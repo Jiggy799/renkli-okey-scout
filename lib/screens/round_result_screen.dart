@@ -186,10 +186,10 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
     if (basis <= 0) return 0;
     final player = _players.firstWhere((p) => p['player_id'] == pid, orElse: () => {});
     final isCifte = player['is_cifte'] as bool? ?? false;
+    // jokerFinish und Cifte-Finish des GEWINNERS werden NICHT auf Verlierer-Strafen aufgeschlagen.
     return berechneStrafpunkte(
       basisPunkte: basis,
       tableColor: _tableColor,
-      jokerFinish: _jokerFinish,
       playerCifteFactor: isCifte,
     );
   }
@@ -647,13 +647,8 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
               final name = p['profiles']?['username'] ?? 'Unbekannt';
               final isLocal = pid == _localUserId;
               final isCifte = p['is_cifte'] as bool? ?? false;
-
-              final factor = berechneStrafpunkte(
-                basisPunkte: 1,
-                tableColor: _tableColor,
-                jokerFinish: _jokerFinish,
-                playerCifteFactor: isCifte,
-              );
+              // Verlierer-Faktor = Tischfarbe × eigener Cifte
+              final loserFactor = tableColorFactor(_tableColor) * (isCifte ? 2 : 1);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -702,7 +697,7 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
                             ],
                           ),
                           Text(
-                            'Basis × $factor = ${(_penaltyInputs[pid] ?? 0) * factor} Strafpunkte',
+                            'Basis × $loserFactor = ${(_penaltyInputs[pid] ?? 0) * loserFactor} Strafpunkte',
                             style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11),
                           ),
                         ],

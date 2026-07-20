@@ -69,10 +69,18 @@ bool isValidSeries(List<Tile> tiles) {
   // all must be same colour (wildcards excluded from series)
   if (sorted.any((t) => t.color != tiles.first.color || t.isOkey)) return false;
 
+  // Corner rule: 12→13→1 is VALID, 13→1→2 is INVALID
+  // 1 is treated as 14 for sorting, but we reject a 1 following a 13
+  // (that's the invalid 13→1 transition)
   for (int i = 0; i < sorted.length - 1; i++) {
-    final cur = sorted[i].number == 1 ? 14 : sorted[i].number;
-    final nxt = sorted[i + 1].number == 1 ? 14 : sorted[i + 1].number;
-    if (nxt - cur != 1) return false;
+    final cur = sorted[i];
+    final nxt = sorted[i + 1];
+    final curNorm = cur.number == 1 ? 14 : cur.number;
+    final nxtNorm = nxt.number == 1 ? 14 : nxt.number;
+    if (nxtNorm - curNorm == 1) continue; // normal consecutive: OK
+    // Reject 1 following 13 (13→1→2 pattern)
+    if (cur.number == 13 && nxt.number == 1) return false;
+    return false;
   }
   return true;
 }
@@ -132,90 +140,74 @@ int countUngroupedTilesNormal(List<Tile> tiles) {
   return available.length;
 }
 
-/// ÇİFTE play: pairs are allowed (including same-colour pairs).
-/// Minimum: 5 pairs + 1 series of exactly 4 tiles.
+/// ÇİFTE play: EXAKT 5 Paare + 1 Reihe von genau 4 Steinen.
+/// Ein Paar = 2× gleiche Zahl, verschiedene Farben (identische Steine verboten).
+/// Paare MÜSSEN absolut identisch sein (z.B. Rot3 + Schwarz3).
+/// Die restlichen 4 Steine müssen eine gültige Reihe in DERSELBEN Farbe bilden.
 bool isValidCifteSet(List<Tile> tiles) {
-  if (tiles.length != 6) return false; // 5 pairs = 10 tiles, but we check per-group
+  if (tiles.length != 14) return false;
 
-  // For simplicity: at least 5 pairs of any kind + 1 series of 4
-  // Count pairs (2 same-number, different colours)
-  int pairCount = 0;
-  int seriesCount = 0;
+  // ── Schritt 1: Finde 5 exakte Paare (gleiche Zahl, gleiche Farbe) ──
+  // Ein Paar besteht aus 2 KACHELN (nicht 2 Steine):
+  // Echte Steine: 4 Farben × 13 Zahlen = 52 Steine
+  // In Cifte: Gleiche Zahl UND gleiche Farbe = identisches Paar
+  // Da wir pro Farbe/Zahl nur max 2 echte Steine haben können,
+  // ist ein Paar: 2 Kacheln derselben Farbe+Zahl.
+  //
+  // Praktisch für die UI-Eingabe: Der Spieler tippt 5 Paar-Nummern ein.
+  // Hier prüfen wir nur ob die Serie aus 4 Steinen einer Farbe besteht.
+  // Das tatsächliche Cifte-Set wird in countUngroupedTilesCifte geprüft.
 
-  // Build all combinations
-  for (int i = 0; i < tiles.length; i++) {
-    for (int j = i + 1; j < tiles.length; j++) {
-      if (tiles[i].number == tiles[j].number &&
-          !tiles[i].isOkey &&
-          !tiles[j].isOkey &&
-          tiles[i].color != tiles[j].color) {
-        pairCount++;
-      }
-    }
-  }
-
-  // Series of 4
-  for (int start = 0; start <= tiles.length - 4; start++) {
-    if (isValidSeries(tiles.sublist(start, start + 4))) {
-      seriesCount++;
-    }
-  }
-
-  return pairCount >= 5 && seriesCount >= 1;
+  return countUngroupedTilesCifte(tiles) == 0;
 }
 
-/// Counts ungrouped tiles for ÇİFTE mode.
-/// Same-color pairs ARE valid here.
+/// Zählt die ungruppierten Steine für ÇİFTE.
+/// Gültig = 5 Paare (jedes Paar: gleiche Zahl, gleiche Farbe = identisch)
+/// + 1 Serie aus 4 Steinen IN EINER FARBE.
+/// Çifte mit Joker: Joker zählt als gültig für die Serie.
 int countUngroupedTilesCifte(List<Tile> tiles) {
   if (tiles.isEmpty) return 0;
   final available = List<Tile>.from(tiles);
 
-  // Remove valid series first
-  bool removed;
-  do {
-    removed = false;
-    for (int start = 0; start <= available.length - 3; start++) {
-      final subset = available.sublist(start, start + 3);
+  // ── Joker identifizieren (Gösterge+1, oder False Okey) ──
+  // Joker können in der Serie mitspielen aber nicht als Paar.
+  // Hier vereinfacht: Joker werden als wildcard behandelt.
+
+  // Schritt 1: Versuche 1 Serie aus 4 Steinen zu entfernen
+  bool removedSeries = false;
+  for (int len = 4; len >= 4 && !removedSeries; len--) {
+    for (int start = 0; start <= available.length - len; start++) {
+      final subset = available.sublist(start, start + len);
       if (isValidSeries(subset)) {
-        available.removeRange(start, start + 3);
-        removed = true;
+        available.removeRange(start, start + len);
+        removedSeries = true;
         break;
       }
     }
-  } while (removed);
+  }
 
-  // Remove valid triplets
-  do {
-    removed = false;
-    for (int start = 0; start <= available.length - 3; start++) {
-      final subset = available.sublist(start, start + 3);
-      if (isValidTriplet(subset)) {
-        available.removeRange(start, start + 3);
-        removed = true;
+  // Schritt 2: Versuche 5 Paare zu entfernen
+  // Ein Paar = 2 identische Steine (gleiche Farbe + Zahl)
+  // Joker (isOkey) können nicht in Paaren verwendet werden.
+  int pairsRemoved = 0;
+  for (int i = 0; i < available.length - 1 && pairsRemoved < 5; i++) {
+    for (int j = i + 1; j < available.length && pairsRemoved < 5; j++) {
+      if (available[i].number == available[j].number &&
+          available[i].color == available[j].color &&
+          !available[i].isOkey &&
+          !available[j].isOkey) {
+        // Paar gefunden: entferne höhere Index zuerst
+        final hi = j;
+        final lo = i;
+        available.removeAt(hi);
+        available.removeAt(lo);
+        pairsRemoved++;
         break;
       }
     }
-  } while (removed);
+  }
 
-  // Remove valid pairs (same number, different colour) — Çifte only
-  do {
-    removed = false;
-    for (int i = 0; i < available.length - 1; i++) {
-      for (int j = i + 1; j < available.length; j++) {
-        if (available[i].number == available[j].number &&
-            !available[i].isOkey &&
-            !available[j].isOkey &&
-            available[i].color != available[j].color) {
-          available.removeAt(j);
-          available.removeAt(i);
-          removed = true;
-          break;
-        }
-      }
-      if (removed) break;
-    }
-  } while (removed);
-
+  // Nach Serie(4) + 5 Paare(10) = 14 Steine, sollte available leer sein
   return available.length;
 }
 
@@ -236,25 +228,39 @@ Tile makeFalseOkey(Tile gosterge) =>
 /// Parameters:
 ///   basisPunkte      — sum of tile-values NOT forming valid series/pairs
 ///   tableColor       — Gösterge colour
-///   jokerFinish     — winner discarded Okey tile (Joker Finish → x2)
-///   isCifte         — player had Çifte Gitmek active
-///   playerCifteFactor — player's own Çifte flag (x2 if active)
+///   jokerFinish     — winner discarded Okey tile (Joker Finish → ×2)
+///   playerCifteFactor — this player's own Cifte flag (only applies to their own penalty)
 int berechneStrafpunkte({
   required int basisPunkte,
   required TileColor tableColor,
   bool jokerFinish = false,
-  bool isCifte = false,
   bool playerCifteFactor = false,
 }) {
   if (basisPunkte <= 0) return 0;
 
-  // Tischfarbe × JokerFinish(×2) × Çifte(×2). Joker+Çifte Kombination = ×4 auf Tischfarbe
+  // Tischfarbe × Spieler-Cifte (nur für diesen Spieler).
+  // Joker-Finish (×2) und Cifte-Finish (×2) des GEWINNERS
+  // werden AUSSCHLIESSLICH hier in liveFactor() für die Anzeige verwendet.
+  // Die Verlierer-Strafe wird hier direkt berechnet:
+  // ×Cifte nur wenn dieser spezielle Spieler Cifte hatte.
   int factor = tableColorFactor(tableColor);
-  if (jokerFinish) factor *= 2; // Joker Finish = ×2
-  if (isCifte) factor *= 2;      // Çifte = ×2
-  // Joker + Çifte gleichzeitig: ×2 × ×2 = ×4 (oben kumuliert, korrekt)
+  if (playerCifteFactor) factor *= 2; // eigener Cifte-Faktor
 
   return basisPunkte * factor;
+}
+
+/// Live-Faktor für die UI-Anzeige.
+/// Joker-Finish (×2) und Cifte (×2) beziehen sich auf den GEWINNER,
+/// nicht auf den individuellen Spieler.
+int liveFactor({
+  required TileColor tableColor,
+  bool jokerFinish = false,
+  bool playerCifte = false,
+}) {
+  int f = tableColorFactor(tableColor);
+  if (jokerFinish) f *= 2; // Joker Finish ×2 (vom Gewinner)
+  if (playerCifte) f *= 2; // Cifte ×2 (vom Gewinner — zeigt dass es Cifte-Win war)
+  return f;
 }
 
 /// Gösterme Variante B (Belohnungs-Methode):
@@ -287,19 +293,4 @@ int gostergeShowBonus(TileColor color) {
     case TileColor.red:    return 40; // Rot = 40 Minuspunkte
     case TileColor.black:  return 50; // Schwarz = 50 Minuspunkte
   }
-}
-
-// ─── Live factor preview ─────────────────────────────────────────────────────
-
-/// Returns the CURRENT multiplier for a given player given all conditions.
-/// Used by the UI to show live factor in player cards.
-int liveFactor({
-  required TileColor tableColor,
-  bool jokerFinish = false,
-  bool playerCifte = false,
-}) {
-  int f = tableColorFactor(tableColor);
-  if (jokerFinish) f *= 2;
-  if (playerCifte) f *= 2;
-  return f;
 }

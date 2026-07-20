@@ -127,10 +127,12 @@ class DemoState {
 
   int calculatePenalty(DemoPlayer p) {
     if (p.penaltyBasis == 0) return 0;
+    // jokerFinish und Cifte-Finish des Gewinners schlagen nur für
+    // die VERLIERER auf — in der Demo ist calculatePenalty für alle
+    // Verlierer, daher kein jokerFinish hier.
     return berechneStrafpunkte(
       basisPunkte: p.penaltyBasis,
       tableColor: selectedColor,
-      jokerFinish: jokerFinish,
       playerCifteFactor: p.isCifte,
     );
   }
