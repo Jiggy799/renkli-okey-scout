@@ -60,7 +60,7 @@ class DemoLobbyScreen extends StatelessWidget {
                 color: const Color(0xFF58A6FF),
                 onTap: () {
                   DemoState().init1Player();
-                  context.go('/demo-round');
+                  context.go('/demo-setup');
                 },
               ),
 
@@ -74,7 +74,7 @@ class DemoLobbyScreen extends StatelessWidget {
                 color: const Color(0xFF238636),
                 onTap: () {
                   DemoState().init2Players();
-                  context.go('/demo-round');
+                  context.go('/demo-setup');
                 },
               ),
 

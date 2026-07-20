@@ -119,7 +119,7 @@ class DemoRoundResultScreen extends StatelessWidget {
                     if (demo.isGameOver) {
                       context.go('/demo-gameover');
                     } else {
-                      context.go('/demo-round');
+                      context.go('/demo-setup');
                     }
                   },
                   style: ElevatedButton.styleFrom(

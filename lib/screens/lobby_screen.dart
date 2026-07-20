@@ -282,6 +282,42 @@ class _LobbyScreenState extends State<LobbyScreen> {
     );
   }
 
+  Future<void> _leaveTable() async {
+    final user = _supabase.auth.currentUser;
+    final tableId = _currentTableId;
+    if (tableId.isEmpty) return;
+
+    try {
+      // Remove self from table_players
+      if (user != null) {
+        await _supabase
+            .from('table_players')
+            .delete()
+            .eq('player_id', user.id)
+            .eq('table_id', tableId);
+      }
+
+      // If host created a table alone, delete the table
+      if (_isHost) {
+        await _supabase.from('tables').delete().eq('id', tableId);
+      }
+
+      _lobbyChannel?.unsubscribe();
+      setState(() {
+        _hostedTableId = null;
+        _joinedTableId = null;
+        _isHost = false;
+        _players = [];
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
   String _generateCode() {
     final rng = Random();
     return List.generate(_tableCodeLength, (_) => rng.nextInt(10)).join();
@@ -396,6 +432,28 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Widget _buildLobby() {
     return Column(
       children: [
+        // Header with back/exit button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          color: const Color(0xFF161B22),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: _leaveTable,
+                tooltip: 'Tisch verlassen',
+              ),
+              const Expanded(
+                child: Text(
+                  'Warte auf Spieler',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF8B949E), fontSize: 14),
+                ),
+              ),
+              const SizedBox(width: 48), // balance the back button
+            ],
+          ),
+        ),
         // QR + Share
         Container(
           padding: const EdgeInsets.all(24),

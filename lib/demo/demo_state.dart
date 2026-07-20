@@ -15,6 +15,7 @@ class DemoPlayer {
   int cumulativePenalty;
   int penaltyBasis; // stone sum entered for current round
   int gostergeShowCount; // System B
+  bool photoSubmitted; // System A: no-photo penalty
 
   DemoPlayer({
     required this.id,
@@ -25,6 +26,7 @@ class DemoPlayer {
     this.cumulativePenalty = 0,
     this.penaltyBasis = 0,
     this.gostergeShowCount = 0,
+    this.photoSubmitted = false,
   });
 }
 
@@ -147,9 +149,17 @@ class DemoState {
 
   void applyRoundEnd() {
     for (final p in players) {
+      // No-photo penalty: +100 points
+      if (!p.photoSubmitted) {
+        p.cumulativePenalty += 100;
+      }
       if (p.penaltyBasis > 0) {
         p.cumulativePenalty += calculatePenalty(p);
       }
+      // Reset per-round state
+      p.penaltyBasis = 0;
+      p.isCifte = false;
+      p.photoSubmitted = false;
     }
 
     rounds.add(DemoRound(
@@ -165,9 +175,6 @@ class DemoState {
     _advanceGosterge();
     jokerFinish = false;
     gostergeShownBy = null;
-    for (final p in players) {
-      p.penaltyBasis = 0;
-    }
   }
 
   void simulateAIPenalties() {
@@ -209,5 +216,6 @@ class DemoState {
     jokerFinish = false;
     gostergeShownBy = null;
     gostergeNumber = 13;
+    selectedColor = TileColor.yellow;
   }
 }

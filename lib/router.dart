@@ -11,6 +11,7 @@ import 'screens/demo_lobby_screen.dart';
 import 'screens/demo_active_round_screen.dart';
 import 'screens/demo_round_result_screen.dart';
 import 'screens/demo_game_over_screen.dart';
+import 'screens/demo_round_setup_screen.dart';
 import 'screens/gosterge_screen.dart';
 import 'screens/active_round_screen.dart';
 import 'screens/round_result_screen.dart';
@@ -43,6 +44,10 @@ final router = GoRouter(
     GoRoute(
       path: '/demo-lobby',
       builder: (context, state) => const DemoLobbyScreen(),
+    ),
+    GoRoute(
+      path: '/demo-setup',
+      builder: (context, state) => const DemoRoundSetupScreen(),
     ),
     GoRoute(
       path: '/demo-round',

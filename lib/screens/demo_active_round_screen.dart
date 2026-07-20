@@ -160,8 +160,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
   }
 
   void _endRound() {
-    // Simulate AI penalties before ending
-    _demo.simulateAIPenalties();
+    // AI penalties already simulated in _showPhotoDialog
     _demo.applyRoundEnd();
 
     if (_demo.isGameOver) {
@@ -169,6 +168,110 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
     } else {
       context.go('/demo-round-result');
     }
+  }
+
+  void _showPhotoDialog() {
+    // Simulate AI penalties before photo step
+    _demo.simulateAIPenalties();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF161B22),
+          title: Row(
+            children: [
+              Icon(Icons.camera_alt, color: Color(0xFFF0C000)),
+              const SizedBox(width: 8),
+              const Text('Foto-Pflicht',
+                  style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Jeder Spieler muss ein Foto machen.\nFehlendes Foto = +100 Strafpunkte.',
+                style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              ..._demo.players.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: _tableColorColor.withValues(alpha: 0.2),
+                      child: Text('\${p.seatIndex + 1}',
+                          style: TextStyle(color: _tableColorColor, fontSize: 11)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(p.name,
+                          style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    ),
+                    if (p.photoSubmitted)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF238636).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Color(0xFF238636)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check, color: Color(0xFF238636), size: 12),
+                            const SizedBox(width: 4),
+                            Text('Foto ✓',
+                                style: TextStyle(color: Color(0xFF238636), fontSize: 11)),
+                          ],
+                        ),
+                      )
+                    else
+                      TextButton.icon(
+                        onPressed: () {
+                          setDialogState(() => p.photoSubmitted = true);
+                        },
+                        icon: Icon(Icons.camera_alt, size: 14, color: Color(0xFFDA3633)),
+                        label: Text('+100 P',
+                            style: TextStyle(color: Color(0xFFDA3633), fontSize: 11)),
+                      ),
+                  ],
+                ),
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Zurück',
+                  style: TextStyle(color: Color(0xFF8B949E))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _demo.applyRoundEnd();
+                if (_demo.isGameOver) {
+                  context.go('/demo-gameover');
+                } else {
+                  context.go('/demo-round-result');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF238636),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                _demo.players.any((p) => !p.photoSubmitted)
+                    ? 'Trotzdem weiter (\${_demo.players.where((p) => !p.photoSubmitted).length}× +100)'
+                    : 'Weiter',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showEndRoundDialog() {
@@ -191,18 +294,19 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _endRound();
+              _showPhotoDialog();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF238636),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Runde beenden'),
+            child: const Text('Weiter zu Foto'),
           ),
         ],
       ),
     );
   }
+
 
   // ─── Build ─────────────────────────────────────────────────────────────────
 
