@@ -60,12 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const Spacer(),
-              // Logo / Title
-              const Icon(
-                Icons.style,
-                size: 80,
-                color: Color(0xFFF0C000),
-              ),
+
+              // Custom logo: Okey stones + camera
+              _buildLogo(),
+
               const SizedBox(height: 16),
               const Text(
                 'RenkliOkeyScout',
@@ -190,6 +188,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
 
+              // Regelwerk button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _isLoading ? null : () => context.push('/rules'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8B949E),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.menu_book, size: 18),
+                  label: const Text(
+                    'Regelwerk lesen',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+
               // How it works
               Container(
                 padding: const EdgeInsets.all(16),
@@ -240,6 +255,93 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Custom logo: 4 Okey stones (tiles) + camera icon overlaid
+  Widget _buildLogo() {
+    return SizedBox(
+      width: 120,
+      height: 90,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 4 coloured tiles arranged in a row
+          Positioned(
+            left: 0,
+            child: _tile(Color(0xFFF0C000), '8', 34),
+          ),
+          Positioned(
+            left: 26,
+            child: _tile(Color(0xFF1F6FEB), '13', 34),
+          ),
+          Positioned(
+            left: 52,
+            child: _tile(Color(0xFFDA3633), '7', 34),
+          ),
+          Positioned(
+            left: 78,
+            child: _tile(Color(0xFF6E7681), '3', 34),
+          ),
+          // Camera icon overlaid bottom-right
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Color(0xFF161B22),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(0xFF30363D), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.camera_alt,
+                color: Color(0xFFF0C000),
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tile(Color color, String number, double size) {
+    return Container(
+      width: size,
+      height: size * 1.35,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          number,
+          style: TextStyle(
+            color: color == Color(0xFFF0C000) || color == Color(0xFF6E7681)
+                ? Colors.black
+                : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
