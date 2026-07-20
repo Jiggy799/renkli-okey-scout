@@ -205,6 +205,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
+              const SizedBox(height: 16),
+
+              // Trainingsdaten sammeln (für Stein-Erkennung)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/collect'),
+                  icon: const Icon(Icons.science, size: 16),
+                  label: const Text(
+                    'Trainingsdaten sammeln (Beta)',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF58A6FF),
+                    side: const BorderSide(color: Color(0xFF58A6FF)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // How it works
               Container(
                 padding: const EdgeInsets.all(16),

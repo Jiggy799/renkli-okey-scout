@@ -18,6 +18,7 @@ import 'screens/round_result_screen.dart';
 import 'screens/game_over_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/rules_screen.dart';
+import 'screens/collect_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -98,6 +99,10 @@ final router = GoRouter(
     GoRoute(
       path: '/rules',
       builder: (context, state) => const RulesScreen(),
+    ),
+    GoRoute(
+      path: '/collect',
+      builder: (context, state) => const CollectScreen(),
     ),
   ],
 );
