@@ -173,7 +173,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                       p.isCifte = false;
                       p.photoSubmitted = false;
                     }
-                    _demo.jokerFinish = false;
+                    _demo.winType = WinType.normal;
                     _demo.gostergeShownBy = null;
                     context.go('/demo-round');
                   },

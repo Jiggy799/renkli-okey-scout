@@ -106,7 +106,8 @@ create table if not exists public.rounds (
   gösterge_tile        jsonb not null,
   gösterge_player_id   uuid references public.profiles(id),
   winner_id            uuid references public.profiles(id),
-  joker_finish         boolean not null default false,
+  win_type             text not null default 'normal',
+                        -- 'normal' | 'okey' | 'cifte' | 'okeyCifte'
   status               text not null default 'gösterge_selection',
                         -- 'gösterge_selection' | 'playing' | 'finished'
   started_at           timestamptz,

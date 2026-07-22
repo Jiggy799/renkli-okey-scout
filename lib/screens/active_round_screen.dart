@@ -23,7 +23,7 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
   Map<String, dynamic>? _table;
   List<Map<String, dynamic>> _players = [];
   TileColor _selectedColor = TileColor.black;
-  bool _jokerFinish = false;
+  WinType _winType = WinType.normal;
   String? _localUserId;
   final Map<String, bool> _gostermeApplied = {};
   final Map<String, bool> _cifteStatus = {};
@@ -152,14 +152,15 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
   }
 
   Future<void> _submitPenalty(String playerId, int basisPunkte) async {
-    // jokerFinish wird hier NICHT aufgeschlagen — active_round_screen
-    // ist nur für die Live-Anzeige. Die finale Berechnung mit jokerFinish
-    // passiert in round_result_screen.
     final isCifte = _cifteStatus[playerId] ?? false;
+    // Joker/Cifte-Multiplikator kommt vom Gewinner (hier aus _winType)
+    final winnerWinType = isCifte
+        ? (_winType == WinType.okey ? WinType.okeyCifte : WinType.cifte)
+        : (_winType == WinType.cifte ? WinType.cifte : _winType);
     final penalty = berechneStrafpunkte(
       basisPunkte: basisPunkte,
       tableColor: _selectedColor,
-      playerCifteFactor: isCifte,
+      winType: winnerWinType,
     );
     final current = (_players.firstWhere(
       (p) => p['player_id'] == playerId,
@@ -346,13 +347,17 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
                 ),
                 const SizedBox(width: 8),
                 Switch(
-                  value: _jokerFinish,
-                  onChanged: (v) => setState(() => _jokerFinish = v),
+                  value: _winType == WinType.okey || _winType == WinType.okeyCifte,
+                  onChanged: (v) => setState(() {
+                    _winType = v
+                        ? (_winType == WinType.cifte ? WinType.okeyCifte : WinType.okey)
+                        : (_winType == WinType.okeyCifte ? WinType.cifte : WinType.normal);
+                  }),
                   activeThumbColor: const Color(0xFF58A6FF),
                   activeTrackColor:
                       const Color(0xFF58A6FF).withValues(alpha: 0.4),
                 ),
-                if (_jokerFinish)
+                if (_winType == WinType.okey || _winType == WinType.okeyCifte)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -376,7 +381,7 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
               border: Border.all(color: _tableColorColor, width: 1),
             ),
             child: Text(
-              'Faktor ×$_tableFactor${_jokerFinish ? '×2' : ''}',
+              'Faktor ×$_tableFactor${_winType == WinType.okey || _winType == WinType.okeyCifte ? '×2' : ''}${_winType == WinType.cifte || _winType == WinType.okeyCifte ? '×2' : ''}',
               style: TextStyle(
                 color: _tableColorColor,
                 fontWeight: FontWeight.bold,
@@ -418,8 +423,7 @@ class _ActiveRoundScreenState extends State<ActiveRoundScreen> {
 
     final currentFactor = liveFactor(
       tableColor: _selectedColor,
-      jokerFinish: _jokerFinish,
-      playerCifte: isCifte,
+      winType: _winType,
     );
 
     return Card(

@@ -54,7 +54,7 @@ class _GameOverScreenState extends State<GameOverScreen> {
           (c) => c.name == colorStr,
           orElse: () => TileColor.blue,
         );
-        bonusSum[pid] = (bonusSum[pid] ?? 0) + gostergeShowBonus(color);
+        bonusSum[pid] = (bonusSum[pid] ?? 0) + berechneGostermeStrafe(color);
       }
     }
 

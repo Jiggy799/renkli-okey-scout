@@ -451,12 +451,16 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
           ),
           const SizedBox(width: 8),
           Switch(
-            value: _demo.jokerFinish,
-            onChanged: (v) => setState(() => _demo.jokerFinish = v),
+            value: _demo.winType == WinType.okey || _demo.winType == WinType.okeyCifte,
+            onChanged: (v) => setState(() {
+              _demo.winType = v
+                  ? (_demo.winType == WinType.cifte ? WinType.okeyCifte : WinType.okey)
+                  : (_demo.winType == WinType.okeyCifte ? WinType.cifte : WinType.normal);
+            }),
             activeThumbColor: const Color(0xFF58A6FF),
             activeTrackColor: const Color(0xFF58A6FF).withValues(alpha: 0.4),
           ),
-          if (_demo.jokerFinish)
+          if (_demo.winType == WinType.okey || _demo.winType == WinType.okeyCifte)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -477,7 +481,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
               border: Border.all(color: _tableColorColor, width: 1),
             ),
             child: Text(
-              'Faktor ×$_tableFactor${_demo.jokerFinish ? '×2' : ''}',
+              'Faktor ×$_tableFactor${_demo.winType == WinType.okey || _demo.winType == WinType.okeyCifte ? '×2' : ''}${_demo.winType == WinType.okeyCifte || _demo.winType == WinType.cifte ? '×2' : ''}',
               style: TextStyle(
                 color: _tableColorColor,
                 fontWeight: FontWeight.bold,
@@ -627,8 +631,8 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                         ? null
                         : () => _applyGosterme(p.id),
                     subtitle: _demo.gostergeShownBy == p.id
-                        ? '✓ ${gostergeShowBonus(_selectedColor)}'
-                        : '(${gostergeShowBonus(_selectedColor)})',
+                        ? '✓ +${berechneGostermeStrafe(_selectedColor)}'
+                        : '(+${berechneGostermeStrafe(_selectedColor)})',
                   ),
                 ),
                 const SizedBox(width: 8),

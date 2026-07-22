@@ -32,7 +32,7 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
   String? _winnerId;
   String? _localUserId;
   TileColor _tableColor = TileColor.black;
-  bool _jokerFinish = false;
+  WinType _winType = WinType.normal;
 
   /// Spieler die ihr Foto bestätigt haben (Kamera-Button gedrückt).
   /// MÜSSEN alle 4 sein um Strafe zu vermeiden.
@@ -149,7 +149,13 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
 
     if (rounds.isNotEmpty) {
       _winnerId = rounds.first['winner_id'] as String?;
-      _jokerFinish = rounds.first['joker_finish'] as bool? ?? false;
+      if (rounds.isNotEmpty) {
+        final lastRound = rounds.last as Map<String, dynamic>;
+        _winType = WinType.values.firstWhere(
+          (w) => w.name == lastRound['win_type'],
+          orElse: () => WinType.normal,
+        );
+      }
     }
 
     final players = List<Map<String, dynamic>>.from(
@@ -186,11 +192,11 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
     if (basis <= 0) return 0;
     final player = _players.firstWhere((p) => p['player_id'] == pid, orElse: () => {});
     final isCifte = player['is_cifte'] as bool? ?? false;
-    // jokerFinish und Cifte-Finish des GEWINNERS werden NICHT auf Verlierer-Strafen aufgeschlagen.
+    // Joker-Multiplikator kommt vom Gewinner.
     return berechneStrafpunkte(
-      basisPunkte: basis,
+      basisPunkte: schrott,
       tableColor: _tableColor,
-      playerCifteFactor: isCifte,
+      winType: _winType,
     );
   }
 
@@ -242,7 +248,7 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
       await _supabase.from('rounds').update({
         'status': 'finished',
         'winner_id': _winnerId,
-        'joker_finish': _jokerFinish,
+        'win_type': _winType.name,
         'finished_at': DateTime.now().toIso8601String(),
       }).eq('id', rounds.first['id']);
     }
@@ -438,8 +444,12 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
                   ),
                 ),
                 Switch(
-                  value: _jokerFinish,
-                  onChanged: (v) => setState(() => _jokerFinish = v),
+                  value: _winType == WinType.okey || _winType == WinType.okeyCifte,
+                  onChanged: (v) => setState(() {
+                    _winType = v
+                        ? (_winType == WinType.cifte ? WinType.okeyCifte : WinType.okey)
+                        : (_winType == WinType.okeyCifte ? WinType.cifte : WinType.normal);
+                  }),
                   activeThumbColor: const Color(0xFFF0C000),
                 ),
               ],

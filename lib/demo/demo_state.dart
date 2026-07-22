@@ -39,7 +39,7 @@ class DemoRound {
   Tile jokerTile;
   String? gostergeShownBy;
   String? winnerId;
-  bool jokerFinish;
+  WinType winType;
 
   DemoRound({
     required this.roundNumber,
@@ -48,7 +48,7 @@ class DemoRound {
     required this.jokerTile,
     this.gostergeShownBy,
     this.winnerId,
-    this.jokerFinish = false,
+    this.winType = WinType.normal,
   });
 }
 
@@ -64,7 +64,7 @@ class DemoState {
   int currentRound = 1;
   TileColor selectedColor = TileColor.yellow;
   int gostergeNumber = 13;
-  bool jokerFinish = false;
+  WinType winType = WinType.normal;
   List<DemoRound> rounds = [];
   String? gostergeShownBy; // who showed gösterge this round
 
@@ -76,7 +76,7 @@ class DemoState {
   void init1Player() {
     playerCount = 1;
     currentRound = 1;
-    jokerFinish = false;
+    winType = WinType.normal;
     rounds = [];
     gostergeShownBy = null;
     gostergeNumber = 13;
@@ -92,7 +92,7 @@ class DemoState {
   void init2Players() {
     playerCount = 2;
     currentRound = 1;
-    jokerFinish = false;
+    winType = WinType.normal;
     rounds = [];
     gostergeShownBy = null;
     gostergeNumber = 13;
@@ -119,39 +119,40 @@ class DemoState {
 
   int get tableFactor => tableColorFactor(selectedColor);
 
+  /// Live-Faktor für die UI-Anzeige.
   int liveFactorFor(DemoPlayer p) {
+    // Joker/Cifte Multiplikatoren kommen vom Gewinner.
+    // isCifte wird hier nicht aufgeschlagen — nur Joker Finish ×2.
     return liveFactor(
       tableColor: selectedColor,
-      jokerFinish: jokerFinish,
-      playerCifte: p.isCifte,
+      winType: winType,
     );
   }
 
+  /// Berechnet die Strafpunkte für einen Verlierer.
+  /// Joker-Multiplikator kommt vom Gewinner (winType).
   int calculatePenalty(DemoPlayer p) {
     if (p.penaltyBasis == 0) return 0;
-    // jokerFinish und Cifte-Finish des Gewinners schlagen nur für
-    // die VERLIERER auf — in der Demo ist calculatePenalty für alle
-    // Verlierer, daher kein jokerFinish hier.
     return berechneStrafpunkte(
       basisPunkte: p.penaltyBasis,
       tableColor: selectedColor,
-      playerCifteFactor: p.isCifte,
+      winType: winType,
     );
   }
 
+  /// Gösterge-Variante A: Der Zeigende bekommt 0,
+  /// alle anderen bekommen +tableColorFactor.
   void applyGostermeTo(String playerId) {
-    final p = players.firstWhere((pl) => pl.id == playerId);
-    final bonus = gostergeShowBonus(selectedColor); // negative, e.g. -20
-    p.cumulativePenalty += bonus;
-    p.gostergeShowCount++;
     gostergeShownBy = playerId;
+    // Finder bekommt nichts, andere bekommen +color
+    // (wird in applyRoundEnd verarbeitet)
   }
 
   void applyRoundEnd() {
     for (final p in players) {
-      // No-photo penalty: +100 points
+      // No-photo penalty: +100
       if (!p.photoSubmitted) {
-        p.cumulativePenalty += 100;
+        p.cumulativePenalty += noPhotoPenalty;
       }
       if (p.penaltyBasis > 0) {
         p.cumulativePenalty += calculatePenalty(p);
@@ -162,18 +163,29 @@ class DemoState {
       p.photoSubmitted = false;
     }
 
+    // Gösterge-Zeigen: Variante A — alle anderen bekommen +color
+    if (gostergeShownBy != null) {
+      final finder = players.firstWhere((p) => p.id == gostergeShownBy);
+      finder.gostergeShowCount++;
+      for (final p in players) {
+        if (p.id != gostergeShownBy) {
+          p.cumulativePenalty += berechneGostermeStrafe(selectedColor);
+        }
+      }
+    }
+
     rounds.add(DemoRound(
       roundNumber: currentRound,
       tableColor: selectedColor,
       gostergeTile: currentGostergeTile,
       jokerTile: currentJokerTile,
       gostergeShownBy: gostergeShownBy,
-      jokerFinish: jokerFinish,
+      winType: winType,
     ));
 
     currentRound++;
     _advanceGosterge();
-    jokerFinish = false;
+    winType = WinType.normal;
     gostergeShownBy = null;
   }
 
@@ -181,23 +193,26 @@ class DemoState {
     final seed = DateTime.now().millisecondsSinceEpoch;
     for (final p in players) {
       if (!p.isHuman && p.penaltyBasis == 0) {
-        p.penaltyBasis = ((seed + p.id.hashCode) % 25) + 1; // 1-25 stones
+        p.penaltyBasis = ((seed + p.id.hashCode) % 25) + 1;
       }
     }
   }
 
   bool get isGameOver => currentRound > 11;
 
+  /// Summe aller Gösterge-Boni für einen Spieler (System B).
   int gostergeBonusFor(String playerId) {
     int total = 0;
     for (final r in rounds) {
       if (r.gostergeShownBy == playerId) {
-        total += gostergeShowBonus(r.tableColor);
+        // Variante A: +color pro Zeigen
+        total += berechneGostermeStrafe(r.tableColor);
       }
     }
     return total;
   }
 
+  /// Finale Punktzahl nach System B Abzug.
   int finalPenaltyFor(String playerId) {
     final p = players.firstWhere((pl) => pl.id == playerId);
     return p.cumulativePenalty - gostergeBonusFor(playerId);
@@ -213,7 +228,7 @@ class DemoState {
     players = [];
     rounds = [];
     currentRound = 1;
-    jokerFinish = false;
+    winType = WinType.normal;
     gostergeShownBy = null;
     gostergeNumber = 13;
     selectedColor = TileColor.yellow;
