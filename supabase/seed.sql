@@ -1,0 +1,3 @@
+-- OkeyScout — Database Seed
+-- Runs automatically on `supabase db reset`
+-- No data needed; app uses anonymous auth and creates tables/players dynamically.

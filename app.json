@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "OkeyScout",
+    "slug": "okeyscout",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "scheme": "okey",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.okey.okeyscout",
+      "infoPlist": {
+        "NSCameraUsageDescription": "OkeyScout needs camera access to scan your Okey rack."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#1a1a2e",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.okey.okeyscout",
+      "permissions": ["CAMERA"],
+      "plugins": [
+        [
+          "react-native-vision-camera",
+          {
+            "cameraPermission": "OkeyScout needs camera access to scan your Okey rack."
+          }
+        ]
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow OkeyScout to access your camera to scan the Okey rack."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow access to save scanned images.",
+          "savePhotosPermission": "Allow saving scanned images to your photo library."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "okeyscout-local"
+      }
+    }
+  }
+}
