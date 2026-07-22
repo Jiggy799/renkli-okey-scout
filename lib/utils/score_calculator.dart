@@ -55,33 +55,60 @@ int tableColorFactor(TileColor color) {
 /// Returns true when three or more tiles form a valid normal series.
 /// Rule: 3+ consecutive numbers of the SAME colour.
 /// Corner series: 12→13→1 is VALID, 13→1→2 is INVALID.
-/// Joker tiles (isOkey) do NOT count as wildcards here — they must match colour.
+/// Joker tiles (isOkey) ARE wildcards — they fill exactly ONE missing gap in a series.
 bool isValidSeries(List<Tile> tiles) {
   if (tiles.length < 3) return false;
-  // sort by number, with corner wrap: treat 1 after 13
-  final sorted = List<Tile>.from(tiles)
+
+  // Separate jokers from real tiles
+  final jokers = tiles.where((t) => t.isOkey).toList();
+  final real   = tiles.where((t) => !t.isOkey).toList();
+
+  if (real.isEmpty) return true; // only jokers = valid
+  if (real.length < 3 - jokers.length) return false; // not enough to form a series even with jokers
+
+  // All real tiles must be same colour
+  final farbe = real.first.color;
+  if (real.any((t) => t.color != farbe)) return false;
+
+  // Sort real tiles with corner wrap: 1 sorts after 13
+  final sorted = List<Tile>.from(real)
     ..sort((a, b) {
       final an = a.number == 1 ? 14 : a.number;
       final bn = b.number == 1 ? 14 : b.number;
       return an.compareTo(bn);
     });
 
-  // all must be same colour (wildcards excluded from series)
-  if (sorted.any((t) => t.color != tiles.first.color || t.isOkey)) return false;
+  // Build virtual sequence: 1 becomes 14 (so 13→1 wraps to 13→14)
+  final virtual = sorted.map((t) => t.number == 1 ? 14 : t.number).toList()..sort();
+  int jokerBudget = jokers.length;
 
-  // Corner rule: 12→13→1 is VALID, 13→1→2 is INVALID
-  // 1 is treated as 14 for sorting, but we reject a 1 following a 13
-  // (that's the invalid 13→1 transition)
-  for (int i = 0; i < sorted.length - 1; i++) {
-    final cur = sorted[i];
-    final nxt = sorted[i + 1];
-    final curNorm = cur.number == 1 ? 14 : cur.number;
-    final nxtNorm = nxt.number == 1 ? 14 : nxt.number;
-    if (nxtNorm - curNorm == 1) continue; // normal consecutive: OK
-    // Reject 1 following 13 (13→1→2 pattern)
-    if (cur.number == 13 && nxt.number == 1) return false;
-    return false;
+  // 13→1→2 is forbidden: detect if 1 comes after 13 with 2 between them
+  final hasOne = virtual.any((n) => n == 14);
+  final hasThirteen = virtual.any((n) => n == 13);
+  final hasTwo = virtual.any((n) => n == 2);
+  if (hasOne && hasThirteen && hasTwo) {
+    // If 13 is before 1 and 2 is between them: invalid
+    final idx13 = sorted.indexWhere((t) => t.number == 13);
+    final idx1  = sorted.indexWhere((t) => t.number == 1);
+    final idx2  = sorted.indexWhere((t) => t.number == 2);
+    if (idx13 >= 0 && idx1 >= 0 && idx2 >= 0 && idx13 < idx1 && idx2 > idx13) {
+      return false; // 13→1→2 pattern
+    }
   }
+
+  // Check consecutive gaps, using jokers to fill
+  for (int i = 0; i < virtual.length - 1; i++) {
+    final gap = virtual[i + 1] - virtual[i];
+    if (gap == 1) continue;    // consecutive ✓
+    if (gap == 0) return false; // duplicate
+    // gap > 1: needs jokers
+    if (gap - 1 <= jokerBudget) {
+      jokerBudget -= (gap - 1);
+      continue;
+    }
+    return false; // gap too large for available jokers
+  }
+
   return true;
 }
 
@@ -140,40 +167,52 @@ int countUngroupedTilesNormal(List<Tile> tiles) {
   return available.length;
 }
 
-/// ÇİFTE play: EXAKT 5 Paare + 1 Reihe von genau 4 Steinen.
-/// Ein Paar = 2× gleiche Zahl, verschiedene Farben (identische Steine verboten).
-/// Paare MÜSSEN absolut identisch sein (z.B. Rot3 + Schwarz3).
-/// Die restlichen 4 Steine müssen eine gültige Reihe in DERSELBEN Farbe bilden.
+/// ÇİFTE play: ZWEI gültige Varianten:
+/// Variante 1: EXAKT 7 Paare (alle 14 Steine = 7 Doppel-Paare) — 0 Schrott
+/// Variante 2: EXAKT 5 Paare + 1 Reihe von genau 4 Steinen.
+/// Ein Paar = 2× gleiche Zahl, gleiche Farbe (identische Steine).
+/// Joker (isOkey) zählen NICHT in Paaren.
+/// Variante 1 wird priorisiert (wenn 7 Paare möglich → gültig).
 bool isValidCifteSet(List<Tile> tiles) {
   if (tiles.length != 14) return false;
 
-  // ── Schritt 1: Finde 5 exakte Paare (gleiche Zahl, gleiche Farbe) ──
-  // Ein Paar besteht aus 2 KACHELN (nicht 2 Steine):
-  // Echte Steine: 4 Farben × 13 Zahlen = 52 Steine
-  // In Cifte: Gleiche Zahl UND gleiche Farbe = identisches Paar
-  // Da wir pro Farbe/Zahl nur max 2 echte Steine haben können,
-  // ist ein Paar: 2 Kacheln derselben Farbe+Zahl.
-  //
-  // Praktisch für die UI-Eingabe: Der Spieler tippt 5 Paar-Nummern ein.
-  // Hier prüfen wir nur ob die Serie aus 4 Steinen einer Farbe besteht.
-  // Das tatsächliche Cifte-Set wird in countUngroupedTilesCifte geprüft.
+  // Variante 1: Versuche 7 Doppel-Paare zu bilden
+  // Ein Paar = gleiche Farbe + gleiche Zahl (identische Steine)
+  // Joker (isOkey) können nicht in Paaren verwendet werden.
+  final nonJokers = tiles.where((t) => !t.isOkey).toList();
+  int pairsFound = 0;
+  final remaining = List<Tile>.from(nonJokers);
 
+  for (int i = 0; i < remaining.length - 1 && pairsFound < 7; i++) {
+    for (int j = i + 1; j < remaining.length && pairsFound < 7; j++) {
+      if (remaining[i].number == remaining[j].number &&
+          remaining[i].color == remaining[j].color) {
+        // Paar gefunden
+        pairsFound++;
+        remaining.removeAt(j);
+        remaining.removeAt(i);
+        break;
+      }
+    }
+  }
+
+  if (pairsFound == 7 && remaining.isEmpty) {
+    return true; // Variante 1: 7 Doppel-Paare ✓
+  }
+
+  // Variante 2: 5 Paare + 4er-Serie
   return countUngroupedTilesCifte(tiles) == 0;
 }
 
 /// Zählt die ungruppierten Steine für ÇİFTE.
-/// Gültig = 5 Paare (jedes Paar: gleiche Zahl, gleiche Farbe = identisch)
-/// + 1 Serie aus 4 Steinen IN EINER FARBE.
-/// Çifte mit Joker: Joker zählt als gültig für die Serie.
+/// Variante 1: 7 Doppel-Paare (alle 14 Steine = 0 Schrott)
+/// Variante 2: 5 Paare (gleiche Farbe+Zahl) + 4er-Serie (eine Farbe).
+/// Joker (isOkey) können die Serie als Wildcard vervollständigen.
 int countUngroupedTilesCifte(List<Tile> tiles) {
   if (tiles.isEmpty) return 0;
   final available = List<Tile>.from(tiles);
 
-  // ── Joker identifizieren (Gösterge+1, oder False Okey) ──
-  // Joker können in der Serie mitspielen aber nicht als Paar.
-  // Hier vereinfacht: Joker werden als wildcard behandelt.
-
-  // Schritt 1: Versuche 1 Serie aus 4 Steinen zu entfernen
+  // Schritt 1: Versuche 4er-Serie mit Joker-Wildcards zu entfernen
   bool removedSeries = false;
   for (int len = 4; len >= 4 && !removedSeries; len--) {
     for (int start = 0; start <= available.length - len; start++) {
@@ -186,9 +225,8 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
     }
   }
 
-  // Schritt 2: Versuche 5 Paare zu entfernen
-  // Ein Paar = 2 identische Steine (gleiche Farbe + Zahl)
-  // Joker (isOkey) können nicht in Paaren verwendet werden.
+  // Schritt 2: Versuche 5 Paare zu entfernen (gleiche Farbe + Zahl)
+  // Joker können nicht in Paaren verwendet werden.
   int pairsRemoved = 0;
   for (int i = 0; i < available.length - 1 && pairsRemoved < 5; i++) {
     for (int j = i + 1; j < available.length && pairsRemoved < 5; j++) {
@@ -196,7 +234,6 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
           available[i].color == available[j].color &&
           !available[i].isOkey &&
           !available[j].isOkey) {
-        // Paar gefunden: entferne höhere Index zuerst
         final hi = j;
         final lo = i;
         available.removeAt(hi);
@@ -207,7 +244,6 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
     }
   }
 
-  // Nach Serie(4) + 5 Paare(10) = 14 Steine, sollte available leer sein
   return available.length;
 }
 
