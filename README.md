@@ -6,6 +6,72 @@ Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schl
 
 ---
 
+## 🎴 Okey-Regeln — Quick Reference
+
+### Farbwerte (Tischfarbe = Multiplikator)
+| | Farbe | Joker-Regel |
+|-|--------|-------------|
+| 🟨 | **Gelb ×2** | Gösterge + 1 (13 → 1 wrap) |
+| 🟦 | **Blau ×3** | Joker füllt genau EINE Lücke in einer Reihe |
+| 🟥 | **Rot ×4** | — |
+| ⬛ | **Schwarz ×5** | — |
+
+### Multiplikatoren
+| Ereignis | Faktor |
+|----------|--------|
+| Tischfarbe Gelb | ×2 |
+| Tischfarbe Blau | ×3 |
+| Tischfarbe Rot | ×4 |
+| Tischfarbe Schwarz | ×5 |
+| Joker abgelegt (Okey Atmak) | ×2 |
+| Çifte-Status + Verlust | ×2 |
+| **Maximal** (Schwarz + Joker + Çifte) | ×20 |
+
+### Serien (3+ aufeinanderfolgende Zahlen, gleiche Farbe)
+```
+✅  Gelb 3 – Gelb 4 – Gelb 5
+✅  Rot 12 – Rot 13 – Rot 1        ← Corner-Wrap!
+✅  Blau 5 – Blau Joker – Blau 7   ← Joker füllt 1 Lücke
+❌  Rot 13 – Rot 1 – Rot 2         ← 13→1→2 verboten!
+```
+
+### Joker-Regel
+- Joker (Okey) = Gösterge + 1
+- Joker füllt **genau EINE** Lücke in einer Reihe
+- Zwei Joker in einer Reihe ❌
+- Sahte Okey (Stern) = Joker-Ersatz
+
+### Çifte (Paare) — Zwei gültige Varianten
+```
+Variante 1:  7 Doppelpaare              → 0 Minuspunkte ✅
+             (7 Paare = alle 14 Steine)
+
+Variante 2:  5 Paare + 1 Reihe aus 4    → Joker erlaubt ✅
+             (5 Paare + 4 Steine = 14)
+```
+
+### Gösterge-Regel (System B)
+Wer die offene Gösterge-Karte zeigt → Alle anderen erhalten Minuspunkte:
+| Farbe | Strafpunkte |
+|-------|------------|
+| Gelb | −20 |
+| Blau | −30 |
+| Rot | −40 |
+| Schwarz | −50 |
+
+Gesammelt über 11 Runden, am Ende abziehen.
+
+### Corner-Regel
+```
+✅ 12 → 13 → 1         (Wrap erlaubt)
+❌ 13 → 1 → 2         (1 ist absoluter Stopp)
+```
+
+### Foto-Pflicht
+Kein Foto der eigenen Steine am Rundenende = **+100 Strafpunkte**
+
+---
+
 ## Was die App kann
 
 ### 🎯 Scoring
@@ -25,45 +91,6 @@ Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schl
 ### 👥 Spielmodi
 - **Demo-Modus**: 1-Spieler oder 2-Spieler (ohne Backend, alles lokal)
 - **Online-Modus**: Supabase Realtime — Tisch erstellen, QR-Code teilen, mit Freunden spielen
-
----
-
-## Okey-Regeln (Kurzübersicht)
-
-### Farbwerte (Tischfarbe = Multiplikator)
-| Farbe | Multiplikator | Joker-Regel |
-|-------|--------------|-------------|
-| Gelb | ×2 | Gösterge + 1 (13 → 1 wrap) |
-| Blau | ×3 | Joker füllt genau EINE Lücke in einer Reihe |
-| Rot | ×4 | |
-| Schwarz | ×5 | |
-
-### Serien
-- 3+ aufeinanderfolgende Zahlen **derselben Farbe**
-- 12 → 13 → 1 ✓ (Wrap erlaubt)
-- 13 → 1 → 2 ✗ (1 ist absoluter Stopp)
-
-### Joker in Reihen
-- Ein Joker (Okey) darf **genau eine** Lücke in einer Reihe füllen
-- Zwei Joker in einer Reihe ✗
-
-### Gruppen
-- Mindestens 3 Steine mit **derselben Zahl**, unterschiedlichen Farben
-
-### Çifte (Paare)
-Zwei gültige Varianten:
-1. **7 Doppelpaare** (alle 14 Steine = 7 Paare) → 0 Minuspunkte
-2. **5 Paare + 1 Reihe aus 4 Steinen** (alle 14 Steine) → Joker erlaubt
-
-### Strafpunkte (System A)
-```
-Runde_Punkte = Schrott_Steine × Tischfarbe × Joker × Çifte
-```
-
-### Gösterge-Regel (System B)
-Gösterge zeigt die offene Karte → Alle anderen bekommen Minuspunkte:
-- Gelb: −20 | Blau: −30 | Rot: −40 | Schwarz: −50
-- Gesammelt über 11 Runden, am Ende abgezogen
 
 ---
 
