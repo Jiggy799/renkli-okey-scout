@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Okey Regeln — Erklärvideo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0D1117;
+    color: #E6EDF3;
+    font-family: -apple-system, system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  h1 {
+    color: #58A6FF;
+    margin: 24px 0 8px;
+    font-size: 1.4rem;
+    text-align: center;
+  }
+  .subtitle {
+    color: #8B949E;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+
+  /* ── Slide container ── */
+  .slide {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 420px;
+    padding: 16px;
+    animation: fadeIn 0.4s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Tiles ── */
+  .tile {
+    width: 44px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    transition: transform 0.3s;
+    position: relative;
+  }
+  .tile.nr { font-size: 0.65rem; opacity: 0.7; margin-top: 2px; }
+  .tile.joker-label { font-size: 0.5rem; opacity: 0.6; margin-top: 2px; }
+  .yellow { background: #F0C000; color: #1a1a1a; border: 2px solid #c9a000; }
+  .blue   { background: #1F6FEB; color: #fff;   border: 2px solid #1557c0; }
+  .red    { background: #DA3633; color: #fff;   border: 2px solid #b52a28; }
+  .black  { background: #2D333B; color: #e6edf3; border: 2px solid #444c56; }
+  .tile.joker { border: 3px dashed #FFD700; color: #FFD700; }
+  .tile.joker .nr { color: #FFD700; }
+  .tile.fake-okey { border: 3px solid #FFD700; }
+
+  /* ── Layouts ── */
+  .tile-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+  }
+  .tile-stack {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+  }
+  .tile-stack .tile {
+    width: 36px;
+    height: 50px;
+    font-size: 0.9rem;
+  }
+  .tile-stack .tile .nr { font-size: 0.55rem; }
+  .tile-stack .tile .joker-label { font-size: 0.4rem; }
+
+  /* ── Info boxes ── */
+  .info-box {
+    background: #161B22;
+    border: 1px solid #30363D;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    width: 100%;
+    max-width: 380px;
+  }
+  .info-box h3 {
+    color: #58A6FF;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .info-box p {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #C9D1D9;
+  }
+  .info-box .good { color: #3FB950; font-weight: 600; }
+  .info-box .bad  { color: #F85149; font-weight: 600; }
+  .info-box .warn { color: #D29922; font-weight: 600; }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 0.85rem;
+  }
+  th { color: #58A6FF; text-align: left; padding: 6px 10px; }
+  td { padding: 6px 10px; border-bottom: 1px solid #21262D; }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Factor badges ── */
+  .factor-row {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .factor-badge {
+    background: #21262D;
+    border: 1px solid #30363D;
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 70px;
+  }
+  .factor-badge .color-dot {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    margin: 0 auto 4px;
+  }
+  .factor-badge .val { font-size: 1.2rem; font-weight: 700; }
+  .factor-badge .label { font-size: 0.7rem; color: #8B949E; }
+
+  /* ── Progress ── */
+  .progress {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #30363D;
+    transition: background 0.3s;
+  }
+  .dot.active { background: #58A6FF; }
+  .dot.done   { background: #3FB950; }
+
+  /* ── Navigation ── */
+  .nav {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+  .btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn.primary { background: #238636; color: #fff; }
+  .btn.secondary { background: #21262D; color: #C9D1D9; border: 1px solid #30363D; }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* ── Animation helpers ── */
+  .tile.pop {
+    animation: pop 0.4s ease;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  .tile.slide-in {
+    animation: slideIn 0.4s ease;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(30px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+  .tile.highlight {
+    box-shadow: 0 0 0 3px #FFD700, 0 2px 12px rgba(255,215,0,0.5);
+    animation: pulse 0.6s ease infinite alternate;
+  }
+  @keyframes pulse {
+    from { box-shadow: 0 0 0 3px #FFD700, 0 2px 8px rgba(255,215,0,0.3); }
+    to   { box-shadow: 0 0 0 5px #FFD700, 0 2px 16px rgba(255,215,0,0.7); }
+  }
+
+  /* ── Corner annotation ── */
+  .corner-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #3FB950;
+    margin: 4px 0;
+  }
+  .corner-note .arrow {
+    color: #D29922;
+    font-size: 1.2rem;
+  }
+
+  /* ── Step indicator ── */
+  .step-tag {
+    background: #1F6FEB;
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  /* ── Calculator demo ── */
+  .calc-demo {
+    background: #161B22;
+    border: 1px solid #30363D;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: #C9D1D9;
+    width: 100%;
+    max-width: 360px;
+  }
+  .calc-demo .result { color: #F85149; font-weight: 700; font-size: 1rem; }
+  .calc-demo .ok     { color: #3FB950; }
+  .calc-demo .step   { color: #8B949E; }
+
+  /* ── Joker highlight box ── */
+  .joker-box {
+    background: #161B22;
+    border: 2px dashed #FFD700;
+    border-radius: 12px;
+    padding: 14px;
+    width: 100%;
+    max-width: 360px;
+    margin: 8px 0;
+    text-align: center;
+  }
+  .joker-box .jk { color: #FFD700; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>🎴 Okey-Regeln</h1>
+<p class="subtitle">Schritt für Schritt — mit Animationen</p>
+
+<div class="progress" id="progress"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 1 — WILLKOMMEN
+═══════════════════════════════════════════════════════════ -->
+<div class="slide active" id="slide-0">
+  <div class="info-box" style="text-align:center">
+    <h3 style="margin-bottom:16px">🎯 Das Ziel</h3>
+    <p style="font-size:1rem">
+      Weniger Minuspunkte = besser.<br>
+      Alle starten bei <strong>0</strong>.<br>
+      Am Ende hat der Gewinner die <strong>wenigsten</strong> Minuspunkte.
+    </p>
+  </div>
+  <div class="tile-row">
+    <div class="factor-badge">
+      <div class="color-dot" style="background:#3FB950"></div>
+      <div class="val">0</div>
+      <div class="label">GEWINNER</div>
+    </div>
+    <div class="factor-badge">
+      <div class="color-dot" style="background:#58A6FF"></div>
+      <div class="val">24</div>
+      <div class="label">Platz 2</div>
+    </div>
+    <div class="factor-badge">
+      <div class="color-dot" style="background:#F85149"></div>
+      <div class="val">91</div>
+      <div class="label">Platz 3</div>
+    </div>
+  </div>
+  <p style="font-size:0.8rem;color:#8B949E;margin-top:8px">
+    Verlierer photographieren ihr Rack → App zählt Schrott-Steine
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 2 — FARBEN & WERTE
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-1">
+  <div class="step-tag">Schritt 1</div>
+  <div class="info-box">
+    <h3>Die 4 Farben</h3>
+    <p>Jede Farbe hat einen <strong>Multiplikator</strong>:</p>
+  </div>
+  <div class="factor-row">
+    <div class="factor-badge">
+      <div class="color-dot yellow"></div>
+      <div class="val" style="color:#F0C000">×2</div>
+      <div class="label">Gelb</div>
+    </div>
+    <div class="factor-badge">
+      <div class="color-dot blue"></div>
+      <div class="val" style="color:#58A6FF">×3</div>
+      <div class="label">Blau</div>
+    </div>
+    <div class="factor-badge">
+      <div class="color-dot red"></div>
+      <div class="val" style="color:#F85149">×4</div>
+      <div class="label">Rot</div>
+    </div>
+    <div class="factor-badge">
+      <div class="color-dot black"></div>
+      <div class="val" style="color:#C9D1D9">×5</div>
+      <div class="label">Schwarz</div>
+    </div>
+  </div>
+  <div class="tile-row" style="margin-top:10px">
+    <div class="tile yellow" style="animation-delay:0s"   >7<div class="nr">Gelb</div></div>
+    <div class="tile blue"   style="animation-delay:0.2s">7<div class="nr">Blau</div></div>
+    <div class="tile red"    style="animation-delay:0.4s">7<div class="nr">Rot</div></div>
+    <div class="tile black"   style="animation-delay:0.6s">7<div class="nr">Schwarz</div></div>
+  </div>
+  <p style="font-size:0.8rem;color:#8B949E;margin-top:8px">
+    Alle Steine von 1–13 existieren in jeder Farbe
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 3 — REIHEN
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-2">
+  <div class="step-tag">Schritt 2</div>
+  <div class="info-box">
+    <h3>Was ist eine gültige Reihe?</h3>
+    <p>3+ Steine <strong>derselben Farbe</strong> in Zahlenfolge</p>
+  </div>
+  <div class="tile-row">
+    <div class="tile yellow pop" style="animation-delay:0s">4</div>
+    <div class="tile yellow pop" style="animation-delay:0.1s">5</div>
+    <div class="tile yellow pop" style="animation-delay:0.2s">6</div>
+  </div>
+  <div class="tile-row">
+    <div class="tile blue pop" style="animation-delay:0.4s">10</div>
+    <div class="tile blue pop" style="animation-delay:0.5s">11</div>
+    <div class="tile blue pop" style="animation-delay:0.6s">12</div>
+    <div class="tile blue pop" style="animation-delay:0.7s">13</div>
+    <div class="tile blue pop" style="animation-delay:0.8s">1</div>
+  </div>
+  <div class="corner-note">
+    <span class="arrow">⟳</span>
+    <span>12 → 13 → 1 ist ERLAUBT (Corner-Wrap!)</span>
+  </div>
+  <div class="tile-row" style="margin-top:10px">
+    <div class="tile red" style="opacity:0.4">13</div>
+    <div class="tile red" style="opacity:0.4">1</div>
+    <div class="tile red" style="opacity:0.4">2</div>
+  </div>
+  <p class="bad" style="font-size:0.8rem;margin-top:4px">13 → 1 → 2 ist VERBOTEN!</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 4 — JOKER
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-3">
+  <div class="step-tag">Schritt 3</div>
+  <div class="info-box">
+    <h3>Der Joker</h3>
+    <p><strong>Joker = Gösterge + 1</strong><br>
+    Gösterge = 7 → Joker = 8<br>
+    Gösterge = 13 → Joker = 1 (Wrap!)</p>
+  </div>
+  <div class="joker-box">
+    <p style="color:#8B949E;font-size:0.8rem;margin-bottom:10px">
+      Gösterge = <strong style="color:#F0C000">Gelb 7</strong>
+    </p>
+    <div class="tile-row">
+      <div class="tile yellow">7<div class="nr">Gösterge</div></div>
+      <div class="tile yellow joker pop" style="animation-delay:0.3s">
+        8<div class="nr">Joker</div>
+        <div class="joker-label">⭐ JOKER</div>
+      </div>
+    </div>
+  </div>
+  <div class="info-box">
+    <p>⭐ <strong>Sahte Okey</strong> (Stern) = Platzhalter für den Joker</p>
+  </div>
+  <div class="tile-row">
+    <div class="tile yellow joker fake-okey">⭐<div class="nr">Sahte Okey</div></div>
+    <div style="display:flex;align-items:center;color:#8B949E;font-size:0.8rem;padding:0 8px">= Joker</div>
+    <div class="tile yellow joker">8<div class="nr">Okey</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 5 — JOKER IN REIHEN
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-4">
+  <div class="step-tag">Schritt 4</div>
+  <div class="info-box">
+    <h3>Joker in einer Reihe</h3>
+    <p>Ein Joker füllt <strong>genau EINE</strong> Lücke.<br>
+    Zwei Joker in einer Reihe = ❌</p>
+  </div>
+  <div class="tile-row">
+    <div class="tile yellow pop" style="animation-delay:0s">4</div>
+    <div class="tile yellow joker pop" style="animation-delay:0.2s">⭐</div>
+    <div class="tile yellow pop" style="animation-delay:0.4s">6</div>
+  </div>
+  <div class="tile-row">
+    <div class="tile red pop" style="animation-delay:0.6s">10</div>
+    <div class="tile red pop" style="animation-delay:0.8s">11</div>
+    <div class="tile red pop" style="animation-delay:1.0s">12</div>
+  </div>
+  <div class="tile-row" style="margin-top:10px">
+    <div class="tile black" style="opacity:0.3">7</div>
+    <div class="tile black joker" style="opacity:0.3">⭐</div>
+    <div class="tile black" style="opacity:0.3">7</div>
+  </div>
+  <p class="bad" style="font-size:0.8rem">Zwei Joker ❌ — geht nicht!</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 6 — ÇİFTE
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-5">
+  <div class="step-tag">Schritt 5</div>
+  <div class="info-box">
+    <h3>Çifte — Zwei Wege zu gewinnen</h3>
+  </div>
+  <div class="tile-row">
+    <div class="info-box" style="flex:1">
+      <h3 style="color:#3FB950">Variante 1</h3>
+      <p><strong>7 Paare</strong><br>(alle 14 Steine)</p>
+      <div class="tile-stack" style="margin-top:8px">
+        <div class="tile blue" style="animation-delay:0s">3</div><div class="tile blue">3</div>
+        <div class="tile red"  style="animation-delay:0.2s">3</div><div class="tile red">3</div>
+        <div class="tile black"style="animation-delay:0.4s">3</div><div class="tile black">3</div>
+        <div class="tile yellow"style="animation-delay:0.6s">3</div><div class="tile yellow">3</div>
+      </div>
+      <p class="ok" style="font-size:0.75rem;margin-top:6px">✅ Gültig — 0 Minuspunkte</p>
+    </div>
+  </div>
+  <div class="info-box">
+    <h3 style="color:#D29922">Variante 2</h3>
+    <p><strong>5 Paare</strong> + <strong>1 Reihe von 4</strong> (Joker erlaubt!)</p>
+    <div class="tile-row" style="margin-top:8px">
+      <div class="tile blue">3</div><div class="tile blue">3</div>
+      <div class="tile red">3</div><div class="tile red">3</div>
+      <div class="tile yellow">3</div><div class="tile yellow">3</div>
+      <div class="tile black" style="margin-left:4px">3</div><div class="tile black">3</div>
+    </div>
+    <div class="tile-row">
+      <div class="tile blue">9</div>
+      <div class="tile blue joker">⭐</div>
+      <div class="tile blue">11</div>
+      <div class="tile blue">12</div>
+    </div>
+    <p class="ok" style="font-size:0.75rem;margin-top:6px">✅ Gültig — Joker in der Reihe erlaubt!</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 7 — STRAFPUNKTE
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-6">
+  <div class="step-tag">Schritt 6</div>
+  <div class="info-box">
+    <h3>Strafpunkte berechnen</h3>
+    <p>Schrott-Steine × Tischfarbe × Joker × Çifte</p>
+  </div>
+  <div class="calc-demo">
+    <div class="step">Schrott-Steine:      <span class="ok">6</span></div>
+    <div class="step">× Tischfarbe (Rot):   <span class="ok">× 4</span></div>
+    <div class="step">Zwischenergebnis:     <span>= 24</span></div>
+    <div class="step">× Joker-Finish:       <span>× 2</span></div>
+    <div class="result">= 48 Minuspunkte!</div>
+  </div>
+  <table>
+    <tr><th>Ereignis</th><th>Faktor</th></tr>
+    <tr><td>Tischfarbe Gelb</td><td>×2</td></tr>
+    <tr><td>Tischfarbe Blau</td><td>×3</td></tr>
+    <tr><td>Tischfarbe Rot</td><td>×4</td></tr>
+    <tr><td>Tischfarbe Schwarz</td><td>×5</td></tr>
+    <tr><td>Joker abgelegt (Okey)</td><td style="color:#FFD700">×2</td></tr>
+    <tr><td>Gewinner hatte Çifte</td><td style="color:#D29922">×2</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 8 — MAXIMALFALL
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-7">
+  <div class="step-tag">Schritt 7</div>
+  <div class="info-box" style="border-color:#FFD700">
+    <h3 style="color:#FFD700">🔥 Maximale Strafe: ×20</h3>
+  </div>
+  <div class="calc-demo">
+    <div class="step">Schrott-Steine:  <span class="ok">6</span></div>
+    <div class="step">× Schwarz:        <span style="color:#C9D1D9">× 5</span></div>
+    <div class="step">× Joker:          <span style="color:#FFD700">× 2</span></div>
+    <div class="step">× Çifte:          <span style="color:#D29922">× 2</span></div>
+    <div class="result">= 6 × 20 = <span style="color:#F85149">120 Minuspunkte!</span></div>
+  </div>
+  <div class="factor-row" style="margin-top:14px">
+    <div class="factor-badge"><div class="color-dot black"></div><div class="val">×5</div><div class="label">Schwarz</div></div>
+    <div style="display:flex;align-items:center;color:#FFD700;font-size:1.4rem">×</div>
+    <div class="factor-badge" style="border-color:#FFD700"><div style="color:#FFD700;font-size:1.2rem">⭐</div><div class="val">×2</div><div class="label">Joker</div></div>
+    <div style="display:flex;align-items:center;color:#D29922;font-size:1.4rem">×</div>
+    <div class="factor-badge" style="border-color:#D29922"><div style="color:#D29922;font-size:1rem">Ç</div><div class="val">×2</div><div class="label">Çifte</div></div>
+  </div>
+  <p style="font-size:0.8rem;color:#8B949E;margin-top:8px;text-align:center">
+    6 Schrott-Steine × 20 = 120 Punkte
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 9 — GÖSTERGE
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-8">
+  <div class="step-tag">Schritt 8</div>
+  <div class="info-box">
+    <h3>Gösterge zeigen</h3>
+    <p>Wenn du den exakten Gösterge-Stein auf der Hand hast, kannst du ihn zeigen.</p>
+  </div>
+  <div class="info-box" style="border-color:#D29922">
+    <h3 style="color:#D29922">Variante A (Straf-Variante)</h3>
+    <div class="tile-row" style="margin-top:8px">
+      <div class="tile black highlight">7<div class="nr">Gösterge</div></div>
+    </div>
+    <p style="margin-top:8px">
+      <span class="ok">✓ Du zeigst</span> → Alle anderen: <span class="bad">+5 Minuspunkte</span><br>
+      <span class="ok">✓ Du selbst</span> → 0
+    </p>
+  </div>
+  <div class="info-box" style="border-color:#3FB950">
+    <h3 style="color:#3FB950">Variante B (Belohnungs-Variante)</h3>
+    <div class="tile-row" style="margin-top:8px">
+      <div class="tile black highlight">7<div class="nr">Gösterge</div></div>
+    </div>
+    <p style="margin-top:8px">
+      <span class="bad">✗ Du zeigst</span> → Du: <span class="bad">−5 Minuspunkte</span><br>
+      <span class="ok">✓ Alle anderen</span> → 0
+    </p>
+  </div>
+  <p style="font-size:0.78rem;color:#8B949E;text-align:center">
+    Gesammelt über 11 Runden → am Ende abziehen
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 10 — FOTO-PFLICHT
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-9">
+  <div class="step-tag">Schritt 9</div>
+  <div class="info-box" style="border-color:#F85149;text-align:center">
+    <h3 style="color:#F85149">⚠️ Foto-Pflicht</h3>
+    <p style="font-size:1.1rem;margin-top:10px">
+      Kein Foto am Rundenende?<br>
+      <strong style="font-size:1.5rem;color:#F85149">+100 Minuspunkte!</strong>
+    </p>
+  </div>
+  <div class="tile-row" style="margin-top:10px">
+    <div style="text-align:center">
+      <div style="font-size:2.5rem">📷</div>
+      <p style="font-size:0.8rem;color:#3FB950">Foto gemacht</p>
+      <p style="font-size:0.75rem;color:#8B949E">+0 Punkte</p>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:2.5rem">🚫📷</div>
+      <p style="font-size:0.8rem;color:#F85149">Kein Foto</p>
+      <p style="font-size:0.75rem;color:#F85149">+100 Punkte!</p>
+    </div>
+  </div>
+  <p style="font-size:0.8rem;color:#8B949E;text-align:center;margin-top:12px">
+    Anti-Schummel-Regel: Jeder fotografiert sein Rack am Rundenende
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 11 — ZUSAMMENFASSUNG
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-10">
+  <div class="step-tag">Fertig!</div>
+  <div class="info-box" style="text-align:center">
+    <h3>🎯 Komplette Berechnung</h3>
+  </div>
+  <div class="calc-demo" style="font-size:0.78rem">
+    <div class="step">Schrott-Steine</div>
+    <div class="step">× Tischfarbe <span style="color:#C9D1D9">(Gelb×2 Blau×3 Rot×4 Schwarz×5)</span></div>
+    <div class="step">× Joker-Finish? <span style="color:#FFD700">(×2 wenn Ja)</span></div>
+    <div class="step">× Çifte? <span style="color:#D29922">(×2 wenn Ja)</span></div>
+    <div class="step">+ Gösterge-Strafen <span style="color:#8B949E">(Variante A/B)</span></div>
+    <div class="step">+ 100 <span style="color:#F85149">(wenn kein Foto)</span></div>
+  </div>
+  <table style="margin-top:12px">
+    <tr><th>Situation</th><th>Faktor</th></tr>
+    <tr><td>Gelb</td><td>×2</td></tr>
+    <tr><td>Blau</td><td>×3</td></tr>
+    <tr><td>Rot</td><td>×4</td></tr>
+    <tr><td>Schwarz</td><td>×5</td></tr>
+    <tr><td>+ Joker-Finish</td><td style="color:#FFD700">×2</td></tr>
+    <tr><td>+ Çifte</td><td style="color:#D29922">×2</td></tr>
+    <tr><td style="color:#FFD700">Maximum</td><td style="color:#FFD700">×20</td></tr>
+    <tr><td>Kein Foto</td><td style="color:#F85149">+100</td></tr>
+  </table>
+  <div class="nav" style="margin-top:16px">
+    <button class="btn secondary" onclick="prev()">← Zurück</button>
+    <button class="btn primary" onclick="restart()">🔄 Nochmal</button>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="btn secondary" id="prevBtn" onclick="prev()" disabled>← Zurück</button>
+  <button class="btn primary" id="nextBtn" onclick="next()">Weiter →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+
+  function show(i) {
+    slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === i);
+    });
+    // Update progress dots
+    const pg = document.getElementById('progress');
+    pg.innerHTML = slides.map((_, i) =>
+      `<div class="dot ${i === current ? 'active' : i < current ? 'done' : ''}"></div>`
+    ).join('');
+    // Update buttons
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === slides.length - 1;
+    document.getElementById('nextBtn').textContent =
+      current === slides.length - 1 ? 'Zusammenfassung ✓' : 'Weiter →';
+  }
+
+  function next() {
+    if (current < slides.length - 1) {
+      current++;
+      show(current);
+    }
+  }
+
+  function prev() {
+    if (current > 0) {
+      current--;
+      show(current);
+    }
+  }
+
+  function restart() {
+    current = 0;
+    show(0);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(); }
+  });
+
+  // Touch/swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const dx = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 50) { dx > 0 ? prev() : next(); }
+  });
+
+  show(0);
+</script>
+
+</body>
+</html>
