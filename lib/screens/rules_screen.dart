@@ -413,9 +413,16 @@ final _pages = <_Page>[
         title: 'Variante A — Straf-Variante',
         borderColor: const Color(0xFFD29922),
         child: Column(children: [
-          _tileRow([_Tile(7, TileColor.black, highlight: true)]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _Tile(7, TileColor.black, highlight: true),
+              const SizedBox(width: 8),
+              const Text('+50', style: TextStyle(color: Color(0xFFD29922), fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
           const SizedBox(height: 8),
-          const Text('Du zeigst:  andere → +5 Punkte\nDu selbst: 0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5)),
+          const Text('Du zeigst:  andere → +50 (Schwarz × 10)\nDu selbst: 0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
         ]),
       ),
       const SizedBox(height: 10),
@@ -423,14 +430,24 @@ final _pages = <_Page>[
         title: 'Variante B — Belohnungs-Variante',
         borderColor: const Color(0xFF3FB950),
         child: Column(children: [
-          _tileRow([_Tile(7, TileColor.black, highlight: true)]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _Tile(7, TileColor.black, highlight: true),
+              const SizedBox(width: 8),
+              const Text('−50', style: TextStyle(color: Color(0xFF3FB950), fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
           const SizedBox(height: 8),
-          const Text('Du zeigst:  −5 Punkte\nAndere:      0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5)),
+          const Text('Du zeigst:  −50 (Schwarz × 10)\nAndere:     0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
         ]),
       ),
       const SizedBox(height: 10),
-      const Text('Gesammelt über 11 Runden → am Ende abziehen',
-          style: TextStyle(color: Color(0xFF8B949E), fontSize: 12)),
+      const Text('⏰ Nur direkt nach dem Austeilen.\n   Nach erstem Zug: Recht verfällt.',
+          style: TextStyle(color: Color(0xFFD29922), fontSize: 11), textAlign: TextAlign.center),
+      const SizedBox(height: 4),
+      const Text('Gesammelt über 11 Runden → Endabrechnung',
+          style: TextStyle(color: Color(0xFF8B949E), fontSize: 12), textAlign: TextAlign.center),
     ]),
   ),
 

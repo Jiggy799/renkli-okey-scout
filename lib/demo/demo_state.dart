@@ -163,7 +163,8 @@ class DemoState {
       p.photoSubmitted = false;
     }
 
-    // Gösterge-Zeigen: Variante A — alle anderen bekommen +color
+    // Gösterge-Zeigen: andere bekommen +(Farbwert × 10)
+    // Halter bekommt 0. Gesammelt über 11 Runden, am Ende abziehen.
     if (gostergeShownBy != null) {
       final finder = players.firstWhere((p) => p.id == gostergeShownBy);
       finder.gostergeShowCount++;
@@ -172,6 +173,8 @@ class DemoState {
           p.cumulativePenalty += berechneGostermeStrafe(selectedColor);
         }
       }
+      // System B: Halter bekommt -(Farbwert × 10) als Belohnung
+      finder.cumulativePenalty += berechneGostermeStrafeHalter(selectedColor);
     }
 
     rounds.add(DemoRound(

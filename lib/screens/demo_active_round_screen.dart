@@ -631,8 +631,8 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                         ? null
                         : () => _applyGosterme(p.id),
                     subtitle: _demo.gostergeShownBy == p.id
-                        ? '✓ +${berechneGostermeStrafe(_selectedColor)}'
-                        : '(+${berechneGostermeStrafe(_selectedColor)})',
+                        ? '✓ −${berechneGostermeStrafe(_selectedColor)} (Halter-Bonus)'
+                        : '+${berechneGostermeStrafe(_selectedColor)} (Variante A)',
                   ),
                 ),
                 const SizedBox(width: 8),

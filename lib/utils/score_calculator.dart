@@ -296,22 +296,28 @@ int liveFactor({
 
 // ─── SYSTEM B: Gösterge-Bonus / -Malus ─────────────────────────────────────
 
-/// Gösterge-Zeigen: Variante A (Straf-Variante).
+/// Gösterge-Zeigen: Belohnung = Farbwert × 10.
 ///
-/// Alle anderen 3 Spieler erhalten +tableColorFactor.
-/// Der Zeigende erhält 0.
+/// Der Gösterge kann ausschließlich DIREKT nach dem Austeilen
+/// vorgezeigt werden (bevor der Halter seinen ersten Zug macht).
+/// Danach verfällt das Recht für diese Runde.
 ///
-/// Über 11 Runden sammeln → am Ende abziehen.
+/// Variante A (Straf-Variante): Halter 0, andere bekommen -(Farbwert × 10).
+/// Variante B (Belohnungs-Variante): Halter bekommt -(Farbwert × 10).
+/// Endabrechnng: Nach 11 Runden alle Strafpunkte (System A) minus
+/// alle Gösterge-Minuspunkte (System B).
 int berechneGostermeStrafe(TileColor tableColor) {
-  return tableColorFactor(tableColor); // Gelb=2, Blau=3, Rot=4, Schwarz=5
+  return tableColorFactor(tableColor) * 10; // -20/-30/-40/-50
 }
 
-/// Gösterge-Zeigen: Variante B (Belohnungs-Variante).
-///
-/// Der Halter des Gösterge verliert tableColorFactor.
-/// Die 3 anderen erhalten 0.
+/// Gösterge-Belohnung (Halter-Variante).
+/// Multiplikator × 10 als Langzeit-Konto.
+int berechneGostermeBelohnung(TileColor tableColor) {
+  return tableColorFactor(tableColor) * 10; // -20/-30/-40/-50 (Minuspunkte = gut)
+}
+
 int berechneGostermeStrafeHalter(TileColor tableColor) {
-  return -tableColorFactor(tableColor); // negativ → wird vom Penalty abgezogen
+  return -berechneGostermeBelohnung(tableColor);
 }
 
 // ─── Çifte helpers ──────────────────────────────────────────────────────────

@@ -51,15 +51,24 @@ Variante 2:  5 Paare + 1 Reihe aus 4    → Joker erlaubt ✅
 ```
 
 ### Gösterge-Regel (System B)
-Wer die offene Gösterge-Karte zeigt → Alle anderen erhalten Minuspunkte:
-| Farbe | Strafpunkte |
-|-------|------------|
+
+**Wichtig:** Der Gösterge kann **ausschließlich direkt nach dem Austeilen** gezeigt werden (bevor der Halter seinen ersten Zug macht). Danach verfällt das Recht für diese Runde.
+
+| Farbe | Belohnung (Farbwert × 10) |
+|-------|---------------------------|
 | Gelb | −20 |
 | Blau | −30 |
 | Rot | −40 |
 | Schwarz | −50 |
 
-Gesammelt über 11 Runden, am Ende abziehen.
+**Variante A — Straf-Variante:** Halter zeigt → andere **+Farbwert×10**, Halter 0.
+**Variante B — Belohnungs-Variante:** Halter zeigt → Halter **−Farbwert×10**, andere 0.
+
+**Endabrechnung (nach 11 Runden):**
+```
+Gesamt = Σ SystemA − Σ SystemB
+```
+→ Spieler kann mit **negativen Punkten** ins Ziel kommen (Gewinner 🏆)!
 
 ### Corner-Regel
 ```
