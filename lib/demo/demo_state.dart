@@ -163,18 +163,14 @@ class DemoState {
       p.photoSubmitted = false;
     }
 
-    // Gösterge-Zeigen: andere bekommen +(Farbwert × 10)
-    // Halter bekommt 0. Gesammelt über 11 Runden, am Ende abziehen.
+    // Gösterge-Zeigen: Nur der ZEICHER bekommt den Bonus (-Farbwert × 10).
+    // Zeitpunkt: Nur DIREKT nach dem Austeilen, vor dem ersten Zug.
+    // Endabrechnung: ΣSystemA − ΣGöstergeBonus
     if (gostergeShownBy != null) {
       final finder = players.firstWhere((p) => p.id == gostergeShownBy);
       finder.gostergeShowCount++;
-      for (final p in players) {
-        if (p.id != gostergeShownBy) {
-          p.cumulativePenalty += berechneGostermeStrafe(selectedColor);
-        }
-      }
-      // System B: Halter bekommt -(Farbwert × 10) als Belohnung
-      finder.cumulativePenalty += berechneGostermeStrafeHalter(selectedColor);
+      // Bonus = negativ (gut für den Spieler)
+      finder.cumulativePenalty += berechneGostermeBonus(selectedColor);
     }
 
     rounds.add(DemoRound(
@@ -203,19 +199,19 @@ class DemoState {
 
   bool get isGameOver => currentRound > 11;
 
-  /// Summe aller Gösterge-Boni für einen Spieler (System B).
+  /// Summe aller Gösterge-Boni (System B).
+  /// Bonus = negativ (reduziert Endabrechnung).
   int gostergeBonusFor(String playerId) {
     int total = 0;
     for (final r in rounds) {
       if (r.gostergeShownBy == playerId) {
-        // Variante A: +color pro Zeigen
-        total += berechneGostermeStrafe(r.tableColor);
+        total += berechneGostermeBonus(r.tableColor);
       }
     }
     return total;
   }
 
-  /// Finale Punktzahl nach System B Abzug.
+  /// Final-Stand: ΣSystemA − ΣGöstergeBonus
   int finalPenaltyFor(String playerId) {
     final p = players.firstWhere((pl) => pl.id == playerId);
     return p.cumulativePenalty - gostergeBonusFor(playerId);

@@ -403,32 +403,19 @@ final _pages = <_Page>[
       const _Box(
         title: '',
         child: Text(
-          'Wenn du den exakten Gösterge-Stein hast,\nkannst du ihn zeigen.',
+          'Alle Spieler zeigen ihre Steine.\nWer den gezogenen Gösterge-Stein hat, sagt Bescheid.',
           style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 14, height: 1.5),
           textAlign: TextAlign.center,
         ),
       ),
       const SizedBox(height: 12),
-      _Box(
-        title: 'Variante A — Straf-Variante',
-        borderColor: const Color(0xFFD29922),
-        child: Column(children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Tile(7, TileColor.black, highlight: true),
-              const SizedBox(width: 8),
-              const Text('+50', style: TextStyle(color: Color(0xFFD29922), fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text('Du zeigst:  andere → +50 (Schwarz × 10)\nDu selbst: 0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
-        ]),
-      ),
-      const SizedBox(height: 10),
-      _Box(
-        title: 'Variante B — Belohnungs-Variante',
-        borderColor: const Color(0xFF3FB950),
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF3FB950), width: 2),
+        ),
         child: Column(children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -439,15 +426,15 @@ final _pages = <_Page>[
             ],
           ),
           const SizedBox(height: 8),
-          const Text('Du zeigst:  −50 (Schwarz × 10)\nAndere:     0 Punkte', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
+          const Text('Bonus auf Gösterge-Konto:\nNegativ = gut für dich!', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
         ]),
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 12),
       const Text('⏰ Nur direkt nach dem Austeilen.\n   Nach erstem Zug: Recht verfällt.',
           style: TextStyle(color: Color(0xFFD29922), fontSize: 11), textAlign: TextAlign.center),
-      const SizedBox(height: 4),
-      const Text('Gesammelt über 11 Runden → Endabrechnung',
-          style: TextStyle(color: Color(0xFF8B949E), fontSize: 12), textAlign: TextAlign.center),
+      const SizedBox(height: 10),
+      const Text('Endabrechnung (nach Runde 11):\nFinal = Σ Strafpunkte − Σ Gösterge-Bonus',
+          style: TextStyle(color: Color(0xFF58A6FF), fontSize: 12, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
     ]),
   ),
 

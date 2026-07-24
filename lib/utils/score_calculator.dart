@@ -294,30 +294,31 @@ int liveFactor({
   return f;
 }
 
-// ─── SYSTEM B: Gösterge-Bonus / -Malus ─────────────────────────────────────
+// ─── SYSTEM B: Gösterge-Bonus (Endabrechnung) ──────────────────────────────
 
-/// Gösterge-Zeigen: Belohnung = Farbwert × 10.
+/// Gösterge-Zeigen: Bonus auf das Langzeit-Konto.
 ///
-/// Der Gösterge kann ausschließlich DIREKT nach dem Austeilen
-/// vorgezeigt werden (bevor der Halter seinen ersten Zug macht).
+/// Wer den Gösterge zeigt → bekommt -(Farbwert × 10) auf sein Konto
+/// (Minus = gut, reduziert die Endabrechnung).
+///
+/// Zeitpunkt: Nur DIREKT nach dem Austeilen, vor dem ersten Zug.
 /// Danach verfällt das Recht für diese Runde.
 ///
-/// Variante A (Straf-Variante): Halter 0, andere bekommen -(Farbwert × 10).
-/// Variante B (Belohnungs-Variante): Halter bekommt -(Farbwert × 10).
-/// Endabrechnng: Nach 11 Runden alle Strafpunkte (System A) minus
-/// alle Gösterge-Minuspunkte (System B).
-int berechneGostermeStrafe(TileColor tableColor) {
-  return tableColorFactor(tableColor) * 10; // -20/-30/-40/-50
+/// Endabrechnung (nach Runde 11):
+///   Spieler_Endstand = Σ alle Strafpunkte (System A) − Σ Gösterge-Bonus
+///
+/// Mit genug Gösterge-Bonus kann ein Spieler im Minus landen = Gewinner.
+int berechneGostermeBonus(TileColor tableColor) {
+  return -tableColorFactor(tableColor) * 10; // -20/-30/-40/-50 (Bonus = negativ)
 }
 
-/// Gösterge-Belohnung (Halter-Variante).
-/// Multiplikator × 10 als Langzeit-Konto.
-int berechneGostermeBelohnung(TileColor tableColor) {
-  return tableColorFactor(tableColor) * 10; // -20/-30/-40/-50 (Minuspunkte = gut)
+/// Rückwärts-Kompatibilität.
+int berechneGostermeStrafe(TileColor tableColor) {
+  return tableColorFactor(tableColor) * 10;
 }
 
 int berechneGostermeStrafeHalter(TileColor tableColor) {
-  return -berechneGostermeBelohnung(tableColor);
+  return berechneGostermeBonus(tableColor);
 }
 
 // ─── Çifte helpers ──────────────────────────────────────────────────────────
