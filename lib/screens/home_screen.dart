@@ -62,9 +62,12 @@ class _HomeContentState extends State<_HomeContent> {
   @override
   Widget build(BuildContext context) {
     final auth = AuthService();
-    final name = _nickname ?? auth.displayName;
-    final avatar = _avatarUrl ?? auth.avatarUrl;
     final user = widget.user;
+    // Anzeige-Name: Nickname aus DB → Google-Name → Auto aus UUID
+    final name = _nickname ??
+        auth.displayName ??
+        'Spieler_${user?.id.substring(0, 4) ?? '0000'}';
+    final avatar = _avatarUrl ?? auth.avatarUrl;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),

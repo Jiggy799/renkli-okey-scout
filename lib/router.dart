@@ -29,11 +29,12 @@ import 'screens/profile_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Helper: Prüft ob der User einen Nickname hat.
+/// Helper: Prüft ob der User einen Nickname braucht.
+/// Anonymous User bekommen einen Auto-Nickname basierend auf ihrer UUID.
 Future<bool> _needsNickname() async {
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return false;
-  // Anonymous User bekommen einen Auto-Nickname
+  // Anonymous User brauchen KEINEN Nickname-Screen — sie kriegen Auto-Nickname
   if (user.isAnonymous) return false;
 
   try {
