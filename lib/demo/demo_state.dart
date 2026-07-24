@@ -69,8 +69,7 @@ class DemoState {
   String? gostergeShownBy; // who showed gösterge this round
 
   static const List<String> _fakeNames = [
-    'Ali', 'Veli', 'Ayse', 'Fatma', 'Mehmet', 'Hakan',
-    'Zeynep', 'Emre', 'Selin', 'Burak', 'Cem', 'Deniz',
+    'Ceyhan', 'Tugrul', 'Hakan', 'Ömer',
   ];
 
   void init1Player() {
@@ -99,9 +98,9 @@ class DemoState {
 
     players = [
       DemoPlayer(id: 'human_1', name: 'Spieler 1', seatIndex: 0, isHuman: true),
-      DemoPlayer(id: 'ai_1',    name: _fakeNames[3], seatIndex: 1),
+      DemoPlayer(id: 'ai_1',    name: _fakeNames[1], seatIndex: 1),
       DemoPlayer(id: 'human_2', name: 'Spieler 2', seatIndex: 2, isHuman: true),
-      DemoPlayer(id: 'ai_3',    name: _fakeNames[4], seatIndex: 3),
+      DemoPlayer(id: 'ai_3',    name: _fakeNames[2], seatIndex: 3),
     ];
   }
 

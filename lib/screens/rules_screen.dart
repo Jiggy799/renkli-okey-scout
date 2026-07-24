@@ -48,7 +48,7 @@ class _Tile extends StatelessWidget {
             : [BoxShadow(color: Colors.black.withValues(alpha:0.4), blurRadius: 4, offset: const Offset(0,2))],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.Center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             isJoker ? '⭐' : '$number',
@@ -328,7 +328,7 @@ final _pages = <_Page>[
             Text('× Tischfarbe (Rot):    × 4', style: TextStyle(color: Color(0xFF3FB950), fontSize: 13, fontFamily: 'Courier')),
             Text('Zwischenergebnis:      = 24', style: TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, fontFamily: 'Courier')),
             Text('× Joker-Finish:        × 2', style: TextStyle(color: Color(0xFFFFD700), fontSize: 13, fontFamily: 'Courier')),
-            Text('─' * 28, style: TextStyle(color: Color(0xFF30363D))),
+            SizedBox(width: double.infinity, height: 1, child: ColoredBox(color: Color(0xFF30363D))),
             Text('= 48 Minuspunkte!', style: TextStyle(color: Color(0xFFF85149), fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Courier')),
           ],
         ),

@@ -194,7 +194,7 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
     final isCifte = player['is_cifte'] as bool? ?? false;
     // Joker-Multiplikator kommt vom Gewinner.
     return berechneStrafpunkte(
-      basisPunkte: schrott,
+      basisPunkte: basis,
       tableColor: _tableColor,
       winType: _winType,
     );
