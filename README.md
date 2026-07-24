@@ -75,9 +75,14 @@ Gesamt = Σ SystemA − Σ SystemB
 
 ### Corner-Regel
 ```
-✅ 12 → 13 → 1         (Wrap erlaubt)
+✅ 11 → 12 → 13 → 1   (Wrap erlaubt — lange Reihe)
+✅ 12 → 13 → 1         (Wrap erlaubt — kurze Reihe)
 ❌ 13 → 1 → 2         (1 ist absoluter Stopp)
 ```
+
+**Info:** 11 → 12 → 13 → 1 ist erlaubt (4er-Reihe über den Wrap).
+Das ist nur eine Erweiterung der normalen Corner-Regel — 1 nach 13 ist immer
+erlaubt, solange 2 NICHT direkt auf 1 folgt.
 
 ### Foto-Pflicht
 Kein Foto der eigenen Steine am Rundenende = **+100 Strafpunkte**
@@ -97,7 +102,7 @@ Kein Foto der eigenen Steine am Rundenende = **+100 Strafpunkte**
 ### 🧠 AI-Stein-Erkennung
 - **ONNX YOLO Modell** für Bounding-Box-Erkennung von Steinen auf dem Tisch
 - **Farb-Klassifikator** für Gelb / Blau / Rot / Schwarz
-- **Zwei Modi**: ONNX direkt auf dem Gerät oder M90q als Vision-Proxy über LAN
+- **Autonom**: ONNX läuft komplett auf dem Gerät — kein PC, kein Server, kein Netzwerk
 - **Fallback**: Manuelle Eingabe wenn AI nicht verfügbar
 
 ### 👥 Spielmodi
@@ -114,7 +119,7 @@ Kein Foto der eigenen Steine am Rundenende = **+100 Strafpunkte**
 | Backend | Supabase (PostgreSQL + Realtime + Storage) |
 | Auth | Supabase Anonymous Sign-ins |
 | AI (lokal) | ONNX Runtime (`onnxruntime` ^1.4.1) |
-| AI (remote) | M90q Ollama über LAN (`http://192.168.178.187:11434`) |
+
 | Kamera | `mobile_scanner` (QR-Codes + Bildaufnahme) |
 | Bilderkennung | Custom YOLO ONNX Modell |
 
@@ -143,7 +148,7 @@ lib/
 ├── services/
 │   ├── supabase_service.dart    # Supabase Client + alle Queries
 │   ├── score_calculator.dart    # Engine: Joker, Corner, Çifte, Strafpunkte
-│   ├── vision_service.dart      # ONNX → M90q-Proxy → Manual
+│   ├── vision_service.dart      # ONNX on-device → Manual
 │   ├── tile_detector.dart       # YOLO Bounding-Box Detector
 │   └── tile_classifier.dart     # Farb-Klassifikator
 └── widgets/
@@ -207,7 +212,7 @@ Alle Releases: [github.com/Jiggy799/renkli-okey-scout/releases](https://github.c
 ## Offene Tasks
 
 - [ ] ONNX Runtime android-36 Support abwarten → dann Detector aktivieren
-- [ ] M90q Vision-Proxy (Ollama) als Fallback für Tile-Erkennung
+
 - [ ] Collect-Screen mit Auto-Label-UI für Training-Daten
 - [ ] Multiplayer zwischen zwei Handys testen
 - [ ] App-Icon (mipmap) durch echte Grafik ersetzen

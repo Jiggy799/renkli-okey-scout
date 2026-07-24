@@ -1,12 +1,11 @@
 // lib/services/vision_service.dart
-// RenkliOkeyScout — Vision AI Service (on-device ONNX + M90q proxy + Manual)
+// RenkliOkeyScout — Vision AI Service (on-device ONNX only)
 //
-// APP IS FULLY INDEPENDENT — Manual mode always works, no server/network required.
+// APP IS FULLY AUTONOMOUS — works 100% on-device, no PC, no server, no network.
 //
 // Priority order:
-//   1. ONNX on-device  (YOLO detector + ColorNumber classifier)  ← NOW
-//   2. M90q Ollama proxy (httpProxyUrl, local WLAN only)        ← optional
-//   3. Manual mode      (user enters basis points directly)      ← ALWAYS works
+//   1. ONNX on-device  (YOLO detector + ColorNumber classifier)  ← DEFAULT
+//   2. Manual mode     (user enters basis points directly)      ← FALLBACK
 //
 // ONNX model: assets/models/okey_yolo_best.onnx
 //   Input:  [1, 3, 224, 224]  (RGB, 224×224)
@@ -27,7 +26,7 @@ class VisionResult {
   final List<Tile> penaltyTiles;
   final String rawResponse;
   final double confidence;
-  /// Which mode produced this result: 'tflite' | 'proxy' | 'manual'
+  /// Which mode produced this result: 'onnx' | 'manual'
   final String mode;
 
   const VisionResult({
@@ -40,22 +39,21 @@ class VisionResult {
 
 // ─── Main service ─────────────────────────────────────────────────────────────
 
-/// Unified vision service — tries ONNX first, then M90q proxy,
-/// falls back to manual (no network/server ever required).
+/// Unified vision service — tries ONNX on-device first,
+/// falls back to manual mode (no network/server ever required).
+///
+/// AUTONOMOUS: No M90q, no Ollama, no proxy, no LAN dependency.
+/// Phone runs the model directly with onnxruntime.
 class VisionService {
   final TileDetector _detector;
   final TileClassifier _classifier;
   bool _onnxLoaded = false;
 
-  /// Ollama vision proxy on M90q, e.g. 'http://192.168.178.187:5000/analyse'.
-  /// Only used when phone is on the same local WLAN as M90q.
-  /// Null = skip proxy, go straight to manual mode.
-  final String? httpProxyUrl;
-
+  /// HTTP client kept for future image-crop API (e.g. image package).
+  /// NOT used for any external server.
   final http.Client _http;
 
   VisionService({
-    this.httpProxyUrl,
     http.Client? client,
   })  : _detector = TileDetector(),
         _classifier = TileClassifier(),
@@ -70,7 +68,7 @@ class VisionService {
 
   /// Analyse a rack photo and return penalty tiles.
   ///
-  /// Priority: TFLite → M90q proxy → Manual mode (user enters count directly).
+  /// Priority: ONNX on-device → Manual mode.
   /// Manual mode NEVER fails and needs no network.
   Future<VisionResult> analyseRack({
     required String imagePath,
@@ -86,20 +84,11 @@ class VisionService {
       try {
         return await _onnxAnalyse(imagePath, gosterge);
       } catch (_) {
-        // Fall through to next option
-      }
-    }
-
-    // 2. M90q Ollama proxy (only if URL configured and reachable)
-    if (httpProxyUrl != null) {
-      try {
-        return await _httpAnalyse(imagePath, gosterge);
-      } catch (_) {
         // Fall through to manual
       }
     }
 
-    // 3. Manual mode — always works, no network, no server
+    // 2. Manual mode — always works, no network, no server
     return _manualMode(manualBasisPunkte);
   }
 
@@ -191,73 +180,6 @@ class VisionService {
     } catch (e) {
       return null;
     }
-  }
-
-  // ─── M90q Ollama proxy ───────────────────────────────────────────────────
-  Future<VisionResult> _httpAnalyse(String imagePath, Tile gosterge) async {
-    final uri = Uri.parse('$httpProxyUrl/analyse');
-    final file = File(imagePath);
-    if (!await file.exists()) {
-      throw VisionException('Image file not found: $imagePath');
-    }
-
-    final request = http.MultipartRequest('POST', uri)
-      ..files.add(await http.MultipartFile.fromPath('image', imagePath))
-      ..fields['gosterge_color'] = gosterge.color.name
-      ..fields['gosterge_number'] = gosterge.number.toString();
-
-    final streamed = await _http
-        .send(request)
-        .timeout(const Duration(seconds: 30));
-
-    if (streamed.statusCode == 502 || streamed.statusCode == 503) {
-      // Proxy unreachable or Ollama overloaded — go manual without error
-      return _manualMode(null);
-    }
-
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode != 200) {
-      throw VisionException('Proxy ${response.statusCode}');
-    }
-
-    return _parseJsonResponse(response.body);
-  }
-
-  VisionResult _parseJsonResponse(String body) {
-    Map<String, dynamic> parsed;
-    try {
-      parsed = jsonDecode(body) as Map<String, dynamic>;
-    } catch (_) {
-      return _manualMode(null);
-    }
-
-    final confidence = (parsed['confidence'] as num?)?.toDouble() ?? 0.0;
-    final rawResponse = parsed['reasoning'] as String? ?? '';
-    final tiles = <Tile>[];
-
-    final rawTiles = parsed['penalty_tiles'] as List<dynamic>? ?? [];
-    for (final t in rawTiles) {
-      final m = t as Map<String, dynamic>;
-      final colorStr = (m['color'] as String? ?? 'yellow').toLowerCase();
-      final number = (m['number'] as num?)?.toInt() ?? 1;
-      final isFalse = (m['is_false_okey'] as bool?) ?? false;
-
-      TileColor color;
-      switch (colorStr) {
-        case 'blue':  color = TileColor.blue;   break;
-        case 'red':   color = TileColor.red;    break;
-        case 'black': color = TileColor.black;   break;
-        default:      color = TileColor.yellow;
-      }
-      tiles.add(Tile(color, number, isOkey: isFalse));
-    }
-
-    return VisionResult(
-      penaltyTiles: tiles,
-      rawResponse: rawResponse,
-      confidence: confidence,
-      mode: 'proxy',
-    );
   }
 
   void dispose() {

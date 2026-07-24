@@ -46,9 +46,8 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
   bool _submitted = false;
 
   // ── Vision / Camera ────────────────────────────────────────────────────
-  final _visionService = VisionService(
-    httpProxyUrl: 'http://192.168.178.187:5000/analyse',
-  );
+  // Autonomous mode: ONNX on-device only, no PC/server.
+  final _visionService = VisionService();
   final _imagePicker = ImagePicker();
 
   // Basis-Punkte die via Kamera erkannt wurden (pro Spieler-ID)
