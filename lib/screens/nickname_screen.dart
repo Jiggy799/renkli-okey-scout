@@ -92,8 +92,6 @@ class _NicknameScreenState extends State<NicknameScreen> {
 
       await _supabase.from('profiles').upsert({
         'id': user.id,
-        'email': user.email,
-        'full_name': user.userMetadata?['full_name'],
         'avatar_url': user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture'],
         'username': username,
       });
