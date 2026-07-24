@@ -17,8 +17,54 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = AuthService();
     final user = auth.currentUser;
-    final name = auth.displayName;
-    final avatar = auth.avatarUrl;
+    return _HomeContent(user: user);
+  }
+}
+
+class _HomeContent extends StatefulWidget {
+  final User? user;
+  const _HomeContent({required this.user});
+
+  @override
+  State<_HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<_HomeContent> {
+  String? _nickname;
+  String? _avatarUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final user = widget.user;
+    if (user == null) return;
+
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (res != null && mounted) {
+        setState(() {
+          _nickname = res['username'];
+          _avatarUrl = res['avatar_url'];
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = AuthService();
+    final name = _nickname ?? auth.displayName;
+    final avatar = _avatarUrl ?? auth.avatarUrl;
+    final user = widget.user;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
@@ -26,6 +72,12 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF161B22),
         elevation: 0,
         actions: [
+          // Profil bearbeiten
+          IconButton(
+            tooltip: 'Profil bearbeiten',
+            icon: const Icon(Icons.edit, color: Color(0xFF8B949E)),
+            onPressed: () => context.push('/profile'),
+          ),
           // Logout
           IconButton(
             tooltip: 'Abmelden',

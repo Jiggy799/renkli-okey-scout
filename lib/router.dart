@@ -24,24 +24,55 @@ import 'screens/settings_screen.dart';
 import 'screens/rules_screen.dart';
 import 'screens/collect_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/nickname_screen.dart';
+import 'screens/profile_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Helper: Prüft ob der User einen Nickname hat.
+Future<bool> _needsNickname() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return false;
+  // Anonymous User bekommen einen Auto-Nickname
+  if (user.isAnonymous) return false;
+
+  try {
+    final res = await Supabase.instance.client
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle();
+    return res == null || (res['username'] as String?)?.isEmpty == true;
+  } catch (_) {
+    return false;
+  }
+}
 
 final router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
-  redirect: (context, state) {
+  redirect: (context, state) async {
     final user = Supabase.instance.client.auth.currentUser;
     final loc = state.matchedLocation;
     final isLogin = loc == '/login';
+    final isNickname = loc == '/nickname';
     final isDemo = loc.startsWith('/demo');
 
     // Nicht angemeldet → Login (außer Demo ist erlaubt)
     if (user == null && !isLogin && !isDemo) {
       return '/login';
     }
-    // Angemeldet aber auf /login → Home
+    // Angemeldet aber auf /login → Nickname (oder Home wenn schon gesetzt)
     if (user != null && isLogin) {
+      if (await _needsNickname()) return '/nickname';
+      return '/';
+    }
+    // Angemeldet, hat aber keinen Nickname → /nickname
+    if (user != null && !isNickname && !isLogin && !isDemo) {
+      if (await _needsNickname()) return '/nickname';
+    }
+    // Auf /nickname aber Nickname existiert schon → /
+    if (user != null && isNickname && !(await _needsNickname())) {
       return '/';
     }
     return null;
@@ -50,6 +81,14 @@ final router = GoRouter(
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/nickname',
+      builder: (context, state) => const NicknameScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ProfileScreen(),
     ),
     GoRoute(
       path: '/',
