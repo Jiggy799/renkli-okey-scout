@@ -1,5 +1,9 @@
 // lib/router.dart
 // RenkliOkeyScout — GoRouter navigation
+//
+// Startseite = /login (wenn nicht angemeldet)
+// Nach Login → /
+// Demo-Routen sind auth-frei.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +23,7 @@ import 'screens/game_over_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/rules_screen.dart';
 import 'screens/collect_screen.dart';
+import 'screens/login_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -27,13 +32,25 @@ final router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
     final user = Supabase.instance.client.auth.currentUser;
-    final isHome = state.matchedLocation == '/';
-    // Demo routes are auth-free
-    final isDemo = state.matchedLocation.startsWith('/demo');
-    if (user == null && !isHome && !isDemo) return '/';
+    final loc = state.matchedLocation;
+    final isLogin = loc == '/login';
+    final isDemo = loc.startsWith('/demo');
+
+    // Nicht angemeldet → Login (außer Demo ist erlaubt)
+    if (user == null && !isLogin && !isDemo) {
+      return '/login';
+    }
+    // Angemeldet aber auf /login → Home
+    if (user != null && isLogin) {
+      return '/';
+    }
     return null;
   },
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const HomeScreen(),

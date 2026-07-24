@@ -1,262 +1,247 @@
 // lib/screens/home_screen.dart
-// RenkliOkeyScout — Home: Username + How to Play
+// RenkliOkeyScout — Home: Willkommen + Aktionen
+//
+// Username + Avatar kommen automatisch vom Provider (Google/Anonymous).
+// Kein manuelles Username-Feld mehr.
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeScreen extends StatefulWidget {
+import '../services/auth_service.dart';
+
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final _usernameController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _continue() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final username = _usernameController.text.trim();
-    if (username.isEmpty) return;
-
-    setState(() => _isLoading = true);
-
-    // Anonymous sign-in if needed
-    var user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      final anonResult =
-          await Supabase.instance.client.auth.signInAnonymously();
-      user = anonResult.user;
-    }
-
-    // Upsert profile
-    await Supabase.instance.client.from('profiles').upsert({
-      'id': user!.id,
-      'username': username,
-    });
-
-    if (mounted) {
-      context.go('/lobby');
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final auth = AuthService();
+    final user = auth.currentUser;
+    final name = auth.displayName;
+    final avatar = auth.avatarUrl;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF161B22),
+        elevation: 0,
+        actions: [
+          // Logout
+          IconButton(
+            tooltip: 'Abmelden',
+            icon: const Icon(Icons.logout, color: Color(0xFF8B949E)),
+            onPressed: () async {
+              await auth.signOut();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            children: [
-              const Spacer(),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
 
-              // Custom logo: Okey stones + camera
-              _buildLogo(),
-
-              const SizedBox(height: 16),
-              const Text(
-                'RenkliOkeyScout',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Okey Score Tracker',
-                style: TextStyle(
-                  color: Color(0xFF8B949E),
-                  fontSize: 16,
-                ),
-              ),
-              const Spacer(),
-
-              // Username form
-              Form(
-                key: _formKey,
-                child: TextFormField(
-                  controller: _usernameController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Dein Spielername',
-                    labelStyle: const TextStyle(color: Color(0xFF8B949E)),
-                    prefixIcon:
-                        const Icon(Icons.person, color: Color(0xFF8B949E)),
-                    filled: true,
-                    fillColor: const Color(0xFF161B22),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF30363D)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF30363D)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF58A6FF), width: 2),
-                    ),
+                // User-Bereich: Avatar + Name
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161B22),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF30363D)),
                   ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Bitte Namen eingeben';
-                    }
-                    if (val.trim().length < 2) {
-                      return 'Mindestens 2 Zeichen';
-                    }
-                    return null;
-                  },
-                  onFieldSubmitted: (_) => _continue(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Continue button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _continue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF238636),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Weiter',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Demo Mode button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () => context.go('/demo-lobby'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFF0C000),
-                    side: const BorderSide(color: Color(0xFFF0C000)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      Icon(Icons.science, color: Color(0xFFF0C000), size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'Demo Modus',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600),
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: const Color(0xFF238636),
+                        backgroundImage:
+                            avatar != null ? NetworkImage(avatar) : null,
+                        child: avatar == null
+                            ? Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user?.isAnonymous == true
+                                  ? '👤 Anonymer Spieler'
+                                  : '🔐 Angemeldet',
+                              style: const TextStyle(
+                                color: Color(0xFF8B949E),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
-
-              // Regelwerk button
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: _isLoading ? null : () => context.push('/rules'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF8B949E),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  icon: const Icon(Icons.menu_book, size: 18),
-                  label: const Text(
-                    'Regelwerk lesen',
-                    style: TextStyle(fontSize: 13),
+                const SizedBox(height: 24),
+                _buildLogo(),
+                const SizedBox(height: 8),
+                const Text(
+                  'RenkliOkeyScout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Trainingsdaten sammeln (für Stein-Erkennung)
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/collect'),
-                  icon: const Icon(Icons.science, size: 16),
-                  label: const Text(
-                    'Trainingsdaten sammeln (Beta)',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF58A6FF),
-                    side: const BorderSide(color: Color(0xFF58A6FF)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                const SizedBox(height: 4),
+                const Text(
+                  'Okey Score Tracker',
+                  style: TextStyle(
+                    color: Color(0xFF8B949E),
+                    fontSize: 14,
                   ),
                 ),
-              ),
+                const SizedBox(height: 32),
 
-              const SizedBox(height: 16),
-
-              // How it works
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF161B22),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF30363D)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'So funktioniert\'s',
+                // Online-Modus Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/lobby'),
+                    icon: const Icon(Icons.people, color: Colors.white),
+                    label: const Text(
+                      'Online spielen (Multiplayer)',
                       style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    _ruleRow(Icons.people, '4 Spieler an einem Tisch'),
-                    _ruleRow(Icons.qr_code, 'QR-Code zum Beitreten'),
-                    _ruleRow(Icons.camera_alt, 'Steine scannen (optional)'),
-                    _ruleRow(Icons.score, 'Strafpunkte automatisch berechnet'),
-                  ],
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
 
-              const Spacer(flex: 2),
-            ],
+                // Demo Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/demo-lobby'),
+                    icon: const Icon(Icons.science, color: Color(0xFFF0C000)),
+                    label: const Text(
+                      'Demo-Modus (lokal testen)',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFF0C000),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFF0C000)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Regelwerk
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => context.push('/rules'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF8B949E),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: const Icon(Icons.menu_book, size: 18),
+                    label: const Text(
+                      'Regelwerk lesen',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Trainingsdaten sammeln
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/collect'),
+                    icon: const Icon(Icons.science, size: 16, color: Color(0xFF58A6FF)),
+                    label: const Text(
+                      'Trainingsdaten sammeln (Beta)',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF58A6FF)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF58A6FF)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // How it works
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161B22),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF30363D)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'So funktioniert\'s',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _ruleRow(Icons.people, '4 Spieler an einem Tisch'),
+                      _ruleRow(Icons.qr_code, 'QR-Code zum Beitreten'),
+                      _ruleRow(Icons.camera_alt, 'Steine scannen (optional)'),
+                      _ruleRow(Icons.score, 'Strafpunkte automatisch berechnet'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
@@ -289,24 +274,22 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 4 coloured tiles arranged in a row
           Positioned(
             left: 0,
-            child: _tile(Color(0xFFF0C000), '8', 34),
+            child: _tile(const Color(0xFFF0C000), '8', 34),
           ),
           Positioned(
             left: 26,
-            child: _tile(Color(0xFF1F6FEB), '13', 34),
+            child: _tile(const Color(0xFF1F6FEB), '13', 34),
           ),
           Positioned(
             left: 52,
-            child: _tile(Color(0xFFDA3633), '7', 34),
+            child: _tile(const Color(0xFFDA3633), '7', 34),
           ),
           Positioned(
             left: 78,
-            child: _tile(Color(0xFF6E7681), '3', 34),
+            child: _tile(const Color(0xFF6E7681), '3', 34),
           ),
-          // Camera icon overlaid bottom-right
           Positioned(
             right: 0,
             bottom: 0,
@@ -314,18 +297,18 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Color(0xFF161B22),
+                color: const Color(0xFF161B22),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Color(0xFF30363D), width: 1.5),
+                border: Border.all(color: const Color(0xFF30363D), width: 1.5),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.4),
                     blurRadius: 4,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.camera_alt,
                 color: Color(0xFFF0C000),
                 size: 20,
@@ -349,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 3,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -357,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Text(
           number,
           style: TextStyle(
-            color: color == Color(0xFFF0C000) || color == Color(0xFF6E7681)
+            color: color == const Color(0xFFF0C000) || color == const Color(0xFF6E7681)
                 ? Colors.black
                 : Colors.white,
             fontWeight: FontWeight.bold,
