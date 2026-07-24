@@ -29,17 +29,20 @@ Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schl
 
 ### Serien (3+ aufeinanderfolgende Zahlen, gleiche Farbe)
 ```
-✅  Gelb 3 – Gelb 4 – Gelb 5
-✅  Rot 12 – Rot 13 – Rot 1        ← Corner-Wrap!
-✅  Blau 5 – Blau Joker – Blau 7   ← Joker füllt 1 Lücke
-❌  Rot 13 – Rot 1 – Rot 2         ← 13→1→2 verboten!
+✅  Gelb 3 – Gelb 4 – Gelb 5              ← 3er-Reihe
+✅  Gelb 3 – Gelb 4 – Gelb 5 – Gelb 6    ← 4er-Reihe
+✅  Rot 12 – Rot 13 – Rot 1               ← Corner-Wrap!
+✅  Rot 10 – Rot 11 – Rot 12 – Rot 1      ← 4er Corner-Wrap!
+✅  Blau 5 – Blau Joker – Blau 7          ← Joker füllt 1 Lücke
+✅  Rot 5 – Rot 6 – Rot Joker – Rot 8      ← 4 Steine mit Joker
+❌  Rot 13 – Rot 1 – Rot 2                ← 13→1→2 verboten!
 ```
 
 ### Joker-Regel
 - Joker (Okey) = Gösterge + 1
 - Joker füllt **genau EINE** Lücke in einer Reihe
 - Zwei Joker in einer Reihe ❌
-- Sahte Okey (Stern) = Joker-Ersatz
+- Sahte Okey (Stern ⭐ oder Kleeblatt 🍀) = Joker-Ersatz
 - ⚠️ **Kleeblatt/Sahte Okey ist in der App NICHT auswählbar** (visuelle Joker-Markierung, nicht als Gösterge oder Joker wählbar)
 
 ### Çifte (Paare) — Zwei gültige Varianten
@@ -49,6 +52,8 @@ Variante 1:  7 Doppelpaare              → 0 Minuspunkte ✅
 
 Variante 2:  5 Paare + 1 Reihe aus 4    → Joker erlaubt ✅
              (5 Paare + 4 Steine = 14)
+             Joker darf in der 4er-Reihe eingesetzt werden
+             Joker darf auch ein Paar ersetzen
 ```
 
 ### Gösterge-Regel (System B)
@@ -61,9 +66,6 @@ Variante 2:  5 Paare + 1 Reihe aus 4    → Joker erlaubt ✅
 | Blau | −30 |
 | Rot | −40 |
 | Schwarz | −50 |
-
-**Variante A — Straf-Variante:** Halter zeigt → andere **+Farbwert×10**, Halter 0.
-**Variante B — Belohnungs-Variante:** Halter zeigt → Halter **−Farbwert×10**, andere 0.
 
 **Endabrechnung (nach 11 Runden):**
 ```
