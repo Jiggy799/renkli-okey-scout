@@ -40,6 +40,7 @@ Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schl
 - Joker füllt **genau EINE** Lücke in einer Reihe
 - Zwei Joker in einer Reihe ❌
 - Sahte Okey (Stern) = Joker-Ersatz
+- ⚠️ **Kleeblatt/Sahte Okey ist in der App NICHT auswählbar** (visuelle Joker-Markierung, nicht als Gösterge oder Joker wählbar)
 
 ### Çifte (Paare) — Zwei gültige Varianten
 ```
