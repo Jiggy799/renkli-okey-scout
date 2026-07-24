@@ -111,7 +111,7 @@ class VisionService {
     final tiles = <Tile>[];
     for (int i = 0; i < count; i++) {
       // Placeholder tiles — user sees them and can correct
-      tiles.add(Tile(TileColor.yellow, 1, false));
+      tiles.add(Tile(TileColor.yellow, 1, isOkey: false));
     }
     return VisionResult(
       penaltyTiles: tiles,
@@ -148,7 +148,7 @@ class VisionService {
               orElse: () => TileColor.yellow,
             );
       // Joker tiles are gösterge+1, not penalty tiles — skip
-      return Tile(color, ct.number, ct.isJoker);
+      return Tile(color, ct.number, isOkey: ct.isJoker);
     }).toList();
 
     sw.stop();
@@ -249,7 +249,7 @@ class VisionService {
         case 'black': color = TileColor.black;   break;
         default:      color = TileColor.yellow;
       }
-      tiles.add(Tile(color, number, isFalse));
+      tiles.add(Tile(color, number, isOkey: isFalse));
     }
 
     return VisionResult(

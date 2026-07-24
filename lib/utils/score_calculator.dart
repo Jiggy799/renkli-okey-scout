@@ -26,13 +26,24 @@ enum WinType {
 class Tile {
   final TileColor color;
   final int number; // 1–13
-  final bool isOkey; // wild card / false okey tag
+  final bool isOkey;   // wild card / Joker tag
+  /// true = Kleeblatt/Sahte Okey (Stern ⭐ oder Kleeblatt 🍀)
+  /// Solche Steine sind NICHT als Gösterge oder Joker auswählbar.
+  final bool isSahte;
 
-  const Tile(this.color, this.number, [this.isOkey = false]);
+  const Tile(this.color, this.number, {this.isOkey = false, this.isSahte = false});
+
+  /// Ob dieser Stein in der App auswählbar ist (Gösterge/Joker-Picker).
+  /// Sahte Okey (Kleeblatt) ist NIEMALS auswählbar.
+  bool get isSelectable => !isSahte;
+
+  /// Alle auswählbaren Steine aus einer Liste (filtert Kleeblatt raus).
+  static List<Tile> selectableTiles(List<Tile> tiles) =>
+      tiles.where((t) => t.isSelectable).toList();
 
   @override
   String toString() =>
-      'Tile(${color.name},$number${isOkey ? ',ok' : ''})';
+      'Tile(${color.name},$number${isOkey ? ',ok' : ''}${isSahte ? ',sahte' : ''})';
 
   @override
   bool operator ==(Object o) =>
@@ -40,10 +51,11 @@ class Tile {
       o is Tile &&
           o.color == color &&
           o.number == number &&
-          o.isOkey == isOkey;
+          o.isOkey == isOkey &&
+          o.isSahte == isSahte;
 
   @override
-  int get hashCode => Object.hash(color, number, isOkey);
+  int get hashCode => Object.hash(color, number, isOkey, isSahte);
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -233,10 +245,15 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
 
 /// Gösterge + 1 → Okey-Karte
 Tile makeOkeyTile(Tile gosterge) =>
-    Tile(gosterge.color, gosterge.number == 13 ? 1 : gosterge.number + 1, true);
+    Tile(gosterge.color, gosterge.number == 13 ? 1 : gosterge.number + 1, isOkey: true);
 
-/// Sahte Okey (Stern) — gleiche Position wie Okey
-Tile makeFalseOkey(Tile gosterge) => makeOkeyTile(gosterge);
+/// Sahte Okey (Kleeblatt/Stern) — gleiche Position wie Okey, ABER nicht auswählbar
+Tile makeFalseOkey(Tile gosterge) => Tile(
+  gosterge.color,
+  gosterge.number == 13 ? 1 : gosterge.number + 1,
+  isOkey: true,
+  isSahte: true,
+);
 
 // ─── SYSTEM A: Runden-Strafpunkte ───────────────────────────────────────────
 
