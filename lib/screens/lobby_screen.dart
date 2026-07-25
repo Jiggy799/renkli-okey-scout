@@ -9,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:realtime_client/realtime_client.dart';
 
+import '../services/auth_service.dart';
 import 'gosterge_screen.dart';
 
 const _scheme = 'okeyscout';
@@ -23,7 +24,7 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen> {
   final _supabase = Supabase.instance.client;
-  final _usernameController = TextEditingController();
+  // Username jetzt via AuthService.displayName
 
   bool _isHost = false;
   String? _hostedTableId;
@@ -101,10 +102,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
   // ─── Host a table ─────────────────────────────────────────────────────────
 
   Future<void> _hostTable() async {
-    final username = _usernameController.text.trim().isNotEmpty
-        ? _usernameController.text.trim()
-        : 'Gast_${Random().nextInt(9999)}';
-
     setState(() => _isLoading = true);
 
     try {
@@ -116,6 +113,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
         final anonResult = await _supabase.auth.signInAnonymously();
         user = anonResult.user;
       }
+
+      // Username vom AuthService (Auto: Spieler_XXXX)
+      final auth = AuthService();
+      final username = auth.displayName;
 
       // Ensure profile
       await _supabase.from('profiles').upsert({
@@ -190,9 +191,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
         user = anonResult.user;
       }
 
-      final username = _usernameController.text.trim().isNotEmpty
-          ? _usernameController.text.trim()
-          : 'Gast_${Random().nextInt(9999)}';
+      // Username vom AuthService (Auto: Spieler_XXXX)
+      final auth = AuthService();
+      final username = auth.displayName;
 
       await _supabase.from('profiles').upsert({
         'id': user!.id,
@@ -355,24 +356,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _usernameField(),
           const SizedBox(height: 32),
           _buildHostButton(),
           const SizedBox(height: 16),
           _buildJoinButton(),
         ],
-      ),
-    );
-  }
-
-  Widget _usernameField() {
-    return TextField(
-      controller: _usernameController,
-      style: const TextStyle(color: Colors.white),
-      decoration: const InputDecoration(
-        labelText: 'Dein Spielername',
-        labelStyle: TextStyle(color: Color(0xFF8B949E)),
-        prefixIcon: Icon(Icons.person, color: Color(0xFF8B949E)),
       ),
     );
   }
@@ -620,7 +608,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   void dispose() {
     _lobbyChannel?.unsubscribe();
-    _usernameController.dispose();
     super.dispose();
   }
 }
