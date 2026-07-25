@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../demo/demo_state.dart';
 import '../utils/score_calculator.dart';
@@ -230,12 +231,39 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                       )
                     else
                       TextButton.icon(
-                        onPressed: () {
-                          setDialogState(() => p.photoSubmitted = true);
+                        onPressed: () async {
+                          // Echte Kamera öffnen + Foto speichern
+                          try {
+                            final picker = ImagePicker();
+                            final photo = await picker.pickImage(
+                              source: ImageSource.camera,
+                              imageQuality: 70,
+                            );
+                            if (photo != null) {
+                              // TODO: Photo zu Supabase Storage hochladen
+                              setDialogState(() => p.photoSubmitted = true);
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Foto von ${p.name} gespeichert ✓'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                  content: Text('Kamera-Fehler: $e'),
+                                ),
+                              );
+                            }
+                          }
                         },
-                        icon: Icon(Icons.camera_alt, size: 14, color: Color(0xFFDA3633)),
-                        label: Text('+100 P',
-                            style: TextStyle(color: Color(0xFFDA3633), fontSize: 11)),
+                        icon: const Icon(Icons.camera_alt, size: 14, color: Color(0xFFF0C000)),
+                        label: const Text('Foto',
+                            style: TextStyle(color: Color(0xFFF0C000), fontSize: 11)),
                       ),
                   ],
                 ),
