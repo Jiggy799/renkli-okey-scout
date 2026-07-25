@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../demo/demo_state.dart';
 import '../utils/score_calculator.dart';
@@ -232,31 +233,43 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                     else
                       TextButton.icon(
                         onPressed: () async {
-                          // Echte Kamera öffnen + Foto speichern
+                          // Echte Kamera öffnen + Foto zu Supabase hochladen
                           try {
                             final picker = ImagePicker();
                             final photo = await picker.pickImage(
                               source: ImageSource.camera,
                               imageQuality: 70,
                             );
-                            if (photo != null) {
-                              // TODO: Photo zu Supabase Storage hochladen
-                              setDialogState(() => p.photoSubmitted = true);
-                              if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Foto von ${p.name} gespeichert ✓'),
-                                    duration: const Duration(seconds: 1),
+                            if (photo == null) return;
+
+                            // Foto zu Supabase Storage hochladen
+                            final fileBytes = await photo.readAsBytes();
+                            final fileName = 'demo_round${_demo.currentRound}_'
+                                'seat${p.seatIndex}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                            await Supabase.instance.client.storage
+                                .from('round-photos')
+                                .uploadBinary(
+                                  fileName,
+                                  fileBytes,
+                                  fileOptions: FileOptions(
+                                    contentType: 'image/jpeg',
+                                    upsert: false,
                                   ),
                                 );
-                              }
+
+                            setDialogState(() => p.photoSubmitted = true);
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                  content: Text('Foto von ${p.name} hochgeladen ✓'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
                             }
                           } catch (e) {
                             if (ctx.mounted) {
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                SnackBar(
-                                  content: Text('Kamera-Fehler: $e'),
-                                ),
+                                SnackBar(content: Text('Fehler: $e')),
                               );
                             }
                           }
