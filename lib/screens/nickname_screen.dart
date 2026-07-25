@@ -119,7 +119,21 @@ class _NicknameScreenState extends State<NicknameScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 24),
-                const Text('🀄️', style: TextStyle(fontSize: 60), textAlign: TextAlign.center),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'O K E Y',
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 8,
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 2
+                        ..color = const Color(0xFF30363D),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'Willkommen!',

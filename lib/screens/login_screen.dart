@@ -49,7 +49,21 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🀄️', style: TextStyle(fontSize: 80)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'O K E Y',
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 8,
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 2
+                        ..color = const Color(0xFF30363D),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'RenkliOkeyScout',
