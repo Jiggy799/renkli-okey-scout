@@ -7,11 +7,45 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
+import 'tutorial_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<void> _checkTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('tutorial_seen') ?? false;
+    if (!seen && mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => TutorialScreen(
+            onComplete: () async {
+              await prefs.setBool('tutorial_seen', true);
+              if (mounted) Navigator.pop(ctx);
+            },
+          ),
+          fullscreenDialog: true,
+        ),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTutorial();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

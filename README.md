@@ -1,22 +1,26 @@
 # RenkliOkeyScout
 
-**Dein Okey-Score-Helfer mit AI-Stein-Erkennung**
+**🎴 Deine Okey-Score-Begleit-App — Schluss mit Stift und Papier!**
 
-Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schluss mit Stift und Papier — die App berechnet automatisch Minuspunkte, Joker-Multiplikatoren, Çifte-Regel und Gösterge-Boni.
+Eine Flutter-App für Android die Okey-Punkte automatisch berechnet: Gösterge, Joker, Çifte, Foto-Pflicht. Funktioniert **komplett offline** mit Anonymous-Login oder mit echter Google-Anmeldung. Multiplayer über Supabase mit QR-Code-Beitritt.
+
+📥 **Download v1.6.2:** https://github.com/Jiggy799/renkli-okey-scout/releases/tag/v1.6.2
 
 ---
 
 ## 🎴 Okey-Regeln — Quick Reference
 
 ### Farbwerte (Tischfarbe = Multiplikator)
+
 | | Farbe | Joker-Regel |
-|-|--------|-------------|
+|---|-------|-------------|
 | 🟨 | **Gelb ×2** | Gösterge + 1 (13 → 1 wrap) |
 | 🟦 | **Blau ×3** | Joker füllt genau EINE Lücke in einer Reihe |
 | 🟥 | **Rot ×4** | — |
 | ⬛ | **Schwarz ×5** | — |
 
-### Multiplikatoren
+### Multiplikatoren-Matrix
+
 | Ereignis | Faktor |
 |----------|--------|
 | Tischfarbe Gelb | ×2 |
@@ -25,27 +29,31 @@ Eine mobile App (Flutter) zum Zählen und Auswerten von Okey-Spielen. Macht Schl
 | Tischfarbe Schwarz | ×5 |
 | Joker abgelegt (Okey Atmak) | ×2 |
 | Çifte-Status + Verlust | ×2 |
+| Joker + Çifte kombiniert | ×4 |
 | **Maximal** (Schwarz + Joker + Çifte) | ×20 |
 
-### Serien (3+ aufeinanderfolgende Zahlen, gleiche Farbe)
+### Serien-Beispiele
+
 ```
 ✅  Gelb 3 – Gelb 4 – Gelb 5              ← 3er-Reihe
 ✅  Gelb 3 – Gelb 4 – Gelb 5 – Gelb 6    ← 4er-Reihe
-✅  Rot 12 – Rot 13 – Rot 1               ← Corner-Wrap!
-✅  Rot 10 – Rot 11 – Rot 12 – Rot 1      ← 4er Corner-Wrap!
+✅  Rot 12 – Rot 13 – Rot 1               ← Corner-Wrap
+✅  Rot 10 – Rot 11 – Rot 12 – Rot 1      ← 4er Corner-Wrap
 ✅  Blau 5 – Blau Joker – Blau 7          ← Joker füllt 1 Lücke
-✅  Rot 5 – Rot 6 – Rot Joker – Rot 8      ← 4 Steine mit Joker
+✅  Rot 5 – Rot 6 – Rot Joker – Rot 8     ← 4 Steine mit Joker
 ❌  Rot 13 – Rot 1 – Rot 2                ← 13→1→2 verboten!
 ```
 
-### Joker-Regel
-- Joker (Okey) = Gösterge + 1
+### Joker-Regeln
+
+- Joker (Okey) = Gösterge + 1 (13 → 1 wrap)
 - Joker füllt **genau EINE** Lücke in einer Reihe
 - Zwei Joker in einer Reihe ❌
 - Sahte Okey (Stern ⭐ oder Kleeblatt 🍀) = Joker-Ersatz
-- ⚠️ **Kleeblatt/Sahte Okey ist in der App NICHT auswählbar** (visuelle Joker-Markierung, nicht als Gösterge oder Joker wählbar)
+- ⚠️ **Kleeblatt/Sahte Okey ist in der App NICHT auswählbar** (visuelle Joker-Markierung)
 
 ### Çifte (Paare) — Zwei gültige Varianten
+
 ```
 Variante 1:  7 Doppelpaare              → 0 Minuspunkte ✅
              (7 Paare = alle 14 Steine)
@@ -58,162 +66,290 @@ Variante 2:  5 Paare + 1 Reihe aus 4    → Joker erlaubt ✅
 
 ### Gösterge-Regel (System B)
 
-**Wichtig:** Der Gösterge kann **ausschließlich direkt nach dem Austeilen** gezeigt werden (bevor der Halter seinen ersten Zug macht). Danach verfällt das Recht für diese Runde.
+**Wichtig:** Der Gösterge kann **ausschließlich direkt nach dem Austeilen** gezeigt werden (bevor der Halter seinen ersten Zug macht). Danach verfällt das Recht.
 
-| Farbe | Belohnung (Farbwert × 10) |
-|-------|---------------------------|
+| Farbe | Bonus (Halter bekommt) |
+|-------|------------------------|
 | Gelb | −20 |
 | Blau | −30 |
 | Rot | −40 |
 | Schwarz | −50 |
 
-**Endabrechnung (nach 11 Runden):**
-```
-Gesamt = Σ SystemA − Σ SystemB
-```
-→ Spieler kann mit **negativen Punkten** ins Ziel kommen (Gewinner 🏆)!
+**Endabrechnung:** `Gesamt = ΣSystemA − ΣGöstergeBonus` — Spieler kann mit **negativen Punkten** ins Ziel kommen (Gewinner 🏆).
 
 ### Corner-Regel
+
 ```
 ✅ 11 → 12 → 13 → 1   (Wrap erlaubt — lange Reihe)
 ✅ 12 → 13 → 1         (Wrap erlaubt — kurze Reihe)
 ❌ 13 → 1 → 2         (1 ist absoluter Stopp)
 ```
 
-**Info:** 11 → 12 → 13 → 1 ist erlaubt (4er-Reihe über den Wrap).
-Das ist nur eine Erweiterung der normalen Corner-Regel — 1 nach 13 ist immer
-erlaubt, solange 2 NICHT direkt auf 1 folgt.
-
 ### Foto-Pflicht
+
 Kein Foto der eigenen Steine am Rundenende = **+100 Strafpunkte**
 
 ---
 
-## Was die App kann
+## 🎯 Features
 
-### 🎯 Scoring
-- **Tischfarbe wählen**: Gelb (×2), Blau (×3), Rot (×4), Schwarz (×5)
-- **Joker-Multiplikator**: Okey ablegen = ×2 auf die Runde
-- **Çifte-Status**: Spieler der "Çifte Gitmek" nimmt, hat ×2 Penalty bei Verlust
-- **Gösterge-Regel**: Wer die offene Gösterge-Karte zeigt, verteilt Minuspunkte an alle anderen
-- **Corner-Regel**: 12 → 13 → 1 ist erlaubt; 13 → 1 → 2 ist verboten
-- **Foto-Pflicht**: Kein Foto der Steine = +100 Strafpunkte
+### 🎯 Scoring-Engine
+- ✅ **Tischfarbe wählen**: Gelb (×2), Blau (×3), Rot (×4), Schwarz (×5)
+- ✅ **Joker-Multiplikator**: Okey ablegen = ×2
+- ✅ **Çifte-Status**: ×2 bei Verlust
+- ✅ **Gösterge 2-Spieler-Confirm + Lock**: Gösterge muss von 2 Spielern bestätigt werden, dann fixiert
+- ✅ **Corner-Regel**: 11→12→13→1 erlaubt
+- ✅ **Foto-Pflicht**: +100 wenn vergessen
 
-### 🧠 AI-Stein-Erkennung
-- **ONNX YOLO Modell** für Bounding-Box-Erkennung von Steinen auf dem Tisch
-- **Farb-Klassifikator** für Gelb / Blau / Rot / Schwarz
-- **Autonom**: ONNX läuft komplett auf dem Gerät — kein PC, kein Server, kein Netzwerk
-- **Fallback**: Manuelle Eingabe wenn AI nicht verfügbar
+### 🤖 Authentifizierung
+- ✅ **Anonymous Login** (Primary — funktioniert sofort)
+- ✅ **Google Sign-In** (UI da, OAuth Client ID konfigurierbar)
+- ⏸ **Apple Sign-In** (TODO)
+
+### 📸 Foto-Feature
+- ✅ **Echte Kamera** via `image_picker`
+- ✅ **Upload zu Supabase Storage** (`round-photos` Bucket)
+- ✅ **Permission-Check** vor Kamera
 
 ### 👥 Spielmodi
-- **Demo-Modus**: 1-Spieler oder 2-Spieler (ohne Backend, alles lokal)
-- **Online-Modus**: Supabase Realtime — Tisch erstellen, QR-Code teilen, mit Freunden spielen
+- ✅ **Demo-Modus**: 1-Spieler oder 2-Spieler (lokal, kein Backend)
+- ✅ **Online-Modus**: Supabase Realtime, QR-Code, 4 Spieler
+
+### 🔒 Sicherheit
+- ✅ **Supabase Auth**: Anonymous + Google
+- ✅ **RLS Policies** auf allen Tabellen
+- ✅ **Storage Policies** mit Owner-Check
+- ✅ **DB-Constraints**: UNIQUE, CHECK 2-12 Zeichen, NOT NULL
 
 ---
 
-## Tech-Stack
+## 🚀 Quick Start
 
-| Bereich | Technologie |
-|---------|-----------|
-| App | Flutter / Dart |
-| Backend | Supabase (PostgreSQL + Realtime + Storage) |
-| Auth | Supabase Anonymous Sign-ins |
-| AI (lokal) | ONNX Runtime (`onnxruntime` ^1.4.1) |
+### Installation auf Android-Handy
 
-| Kamera | `mobile_scanner` (QR-Codes + Bildaufnahme) |
-| Bilderkennung | Custom YOLO ONNX Modell |
+**Option A: Direkt von GitHub**
+1. Öffne https://github.com/Jiggy799/renkli-okey-scout/releases/tag/v1.6.2 auf dem Handy
+2. Tippe auf `app-debug.apk`
+3. Erlaube "Installation aus unbekannten Quellen"
+4. Installiere + Öffnen
 
----
-
-## Projektstruktur
-
-```
-lib/
-├── main.dart                    # App-Entry-Point
-├── app.dart                     # Supabase-Init + Theming
-├── router.dart                  # GoRouter Navigation
-├── models/
-│   ├── tile.dart                # Tile (color, number, isOkey, isSahte)
-│   ├── player.dart              # Spieler mit Punkten
-│   └── round.dart               # Runde mit Steinen + Scores
-├── screens/
-│   ├── home_screen.dart         # Startbildschirm
-│   ├── rules_screen.dart        # Vollständiges Regelwerk
-│   ├── demo_setup_screen.dart   # Demo: Spieleranzahl wählen
-│   ├── demo_active_round_screen.dart  # Demo-Runde
-│   ├── demo_round_result_screen.dart  # Demo-Ergebnis
-│   ├── active_round_screen.dart # Online-Runde
-│   ├── round_result_screen.dart # Online-Ergebnis
-│   └── camera_result_screen.dart # Foto-Resultat
-├── services/
-│   ├── supabase_service.dart    # Supabase Client + alle Queries
-│   ├── score_calculator.dart    # Engine: Joker, Corner, Çifte, Strafpunkte
-│   ├── vision_service.dart      # ONNX on-device → Manual
-│   ├── tile_detector.dart       # YOLO Bounding-Box Detector
-│   └── tile_classifier.dart     # Farb-Klassifikator
-└── widgets/
-    ├── tile_widget.dart         # Einzelner Stein (visuell)
-    └── player_card.dart         # Spieler-Karte mit Score
-
-assets/
-└── models/
-    └── okey_yolo_best.onnx     # YOLO Bounding-Box Modell (12 MB)
-```
-
----
-
-## Setup & Installation
-
-### Voraussetzungen
-- Flutter SDK 3.12+
-- Android SDK 33+ (für ONNX Runtime)
-- Supabase Projekt (Projekt-ID: `ntssssvyyptvdjerbtll`)
-
-### Android build
-```bash
-flutter pub get
-flutter build apk --debug
-```
-
-### APK installieren
+**Option B: Per ADB**
 ```bash
 adb install build/app/outputs/flutter-apk/app-debug.apk
 ```
 
+### Erste Schritte in der App
+
+```
+┌─────────────────────────────────────────────┐
+│  🀴 RenkliOkeyScout                          │
+│                                              │
+│  ┌───────────────────────────────────────┐  │
+│  │  ▶ ANONYM SPIELEN (sofort loslegen)   │  │  ← Großer grüner Button
+│  └───────────────────────────────────────┘  │
+│                                              │
+│  ┌───────────────────────────────────────┐  │
+│  │  Mit Google anmelden                   │  │
+│  └───────────────────────────────────────┘  │
+│                                              │
+│  ┌───────────────────────────────────────┐  │
+│  │  Anonym spielen (Demo)                │  │  ← Auch Demo starten
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+       ↓
+   [Anonym spielen]
+       ↓
+   ┌────────────────────────────────────────┐
+   │  Home-Screen:                          │
+   │  [Online spielen]  → Multiplayer      │
+   │  [Demo-Modus]     → 1 oder 2 Spieler  │
+   │  [Regelwerk]       → Alle Regeln      │
+   └────────────────────────────────────────┘
+```
+
+### Demo-Runde spielen
+
+1. **Demo-Modus** tippen
+2. **1 Spieler** auswählen (oder 2)
+3. **Gösterge definieren**: Farbe + Nummer wählen
+4. **2 Spieler bestätigen** den Gösterge (Dropdown)
+5. **Runde starten** (Button wird aktiv wenn locked)
+6. **Strafpunkte** für Verlierer eingeben
+7. **Foto machen** (Kamera geht auf)
+8. Nächste Runde oder Game Over
+
 ---
 
-## Supabase Schema
+## 🧪 Test-Plan
+
+### 5-Minuten-Schnelltest (Solo)
+
+| Schritt | Aktion | Erwartet |
+|---------|--------|----------|
+| 1 | App öffnen | Login-Screen |
+| 2 | "Anonym spielen" | Home-Screen |
+| 3 | "Demo-Modus" → "1 Spieler" | Demo-Lobby |
+| 4 | Gösterge = Schwarz, Nr 7 | Setup-Screen |
+| 5 | 2× bestätigen via Dropdown | "Runde starten" wird aktiv |
+| 6 | Runde starten | Aktive Runde |
+| 7 | Foto tippen | Kamera öffnet |
+| 8 | Foto machen | Upload-OK + ✓ |
+| 9 | Strafpunkte = 12 eintragen | Live-Faktor ×5 |
+| 10 | Nächste Runde | Rounds-Counter steigt |
+| 11 | Nach 11 Runden | Game Over Screen |
+
+### 10-Minuten-Online-Test (2 Handys)
+
+**Setup:**
+- Beide Handys im gleichen WLAN
+- Einer erstellt Tisch, scannt QR-Code auf dem anderen
+
+**Flow:**
+1. Beide öffnen App → "Anonym spielen"
+2. Host: "Online spielen" → "Tisch erstellen" → zeigt QR-Code
+3. Guest: "Online spielen" → QR-Code scannen → tritt bei
+4. Host startet Spiel → beide sehen Tisch
+5. Beide spielen → synchronisieren via Realtime
+6. Foto hochladen
+7. Runden-Ergebnisse synchron
+
+---
+
+## 🛠 Tech-Stack
+
+| Bereich | Technologie |
+|---------|-----------|
+| App | Flutter 3.12+ / Dart |
+| State | Provider |
+| Navigation | GoRouter |
+| Backend | Supabase (PostgreSQL + Realtime + Storage) |
+| Auth | Supabase Anonymous + Google Sign-In |
+| Kamera | `image_picker` |
+| QR-Code | `mobile_scanner` + `qr_flutter` |
+| Bilderkennung | Custom ONNX YOLO Modell (Stub) |
+| Local DB | `path_provider` |
+
+---
+
+## 📁 Projektstruktur
+
+```
+lib/
+├── main.dart                            # App-Entry + Supabase-Init
+├── router.dart                          # GoRouter (Redirect-Logik)
+├── screens/
+│   ├── login_screen.dart                 # Anonymous + Google + Apple-Placeholder
+│   ├── nickname_screen.dart              # Nickname-Auswahl (für Google-User)
+│   ├── profile_screen.dart               # Nickname editieren
+│   ├── home_screen.dart                  # User-Info + Modus-Auswahl
+│   ├── lobby_screen.dart                 # Online-Modus: Tisch erstellen/Qr-Scannen
+│   ├── demo_lobby_screen.dart            # 1 oder 2 Spieler wählen
+│   ├── demo_round_setup_screen.dart      # Gösterge definieren + 2-Spieler-Confirm
+│   ├── demo_active_round_screen.dart     # Demo-Runde + Foto-Pflicht
+│   ├── demo_round_result_screen.dart     # Demo-Ergebnis
+│   ├── demo_game_over_screen.dart        # Demo: Ende nach 11 Runden
+│   ├── active_round_screen.dart          # Online-Runde
+│   ├── round_result_screen.dart          # Online-Ergebnis
+│   ├── game_over_screen.dart             # Online-Ende
+│   ├── gosterge_screen.dart              # Gösterge-Setup (Online)
+│   ├── rules_screen.dart                 # Animierte Regelwerk-Slides (10 Slides)
+│   ├── settings_screen.dart              # Einstellungen
+│   └── collect_screen.dart               # Training-Daten sammeln (Beta)
+├── services/
+│   ├── auth_service.dart                 # Google + Anonymous Auth
+│   ├── vision_service.dart               # ONNX on-device (Stub)
+│   ├── tile_detector.dart                # YOLO Stub
+│   ├── tile_detector_impl.dart           # ONNX (auskommentiert, warten auf android-36)
+│   ├── tile_classifier.dart              # Heuristik
+│   └── collect_service.dart              # Training-Data Upload
+├── utils/
+│   └── score_calculator.dart             # Engine (WinType, Gösterge, Joker, Çifte, Corner)
+├── demo/
+│   └── demo_state.dart                   # Demo-Singleton (Ceyhan, Tugrul, Hakan, Ömer)
+└── models/
+    └── (im utils/)
+
+assets/
+└── models/
+    └── okey_yolo_best.onnx               # 12 MB YOLO Modell
+
+supabase/
+└── migrations/
+    ├── 002_add_game_fields.sql
+    ├── 003_rounds_win_type.sql           # joker_finish → win_type enum
+    ├── 004_profile_username_unique.sql   # username UNIQUE
+    ├── 005_profile_username_validation.sql # CHECK 2-12, NOT NULL
+    └── 006_gosterge_confirmed_by.sql     # rounds.gosterge_confirmed_by jsonb
+```
+
+---
+
+## 🗄️ Supabase-Schema
+
+### Tabellen
 
 | Tabelle | Beschreibung |
 |---------|-------------|
-| `profiles` | Spieler (UUID, Name, Avatar-URL, Joker-Bonus) |
-| `tables` | Spieltische (Code, Ersteller, Spieler-Liste, Status) |
-| `rounds` | Runden (Tisch-ID, Gösterge-Farbe/Zahl, Joker-Finish, Foto-URL) |
-| `round_players` | Runden-Spieler (Runde, Spieler, Çifte-Status, Strafpunkte) |
+| `profiles` | Spieler (UUID, username 2-12, avatar_url, created_at) |
+| `tables` | Spieltische (4-digit Code, status, current_round) |
+| `table_players` | Spieler pro Tisch (seat_index, is_cifte, is_ready) |
+| `rounds` | Runden (gösterge_tile, win_type, gosterge_confirmed_by) |
+| `training_samples` | Trainings-Daten für ONNX-Modell |
 
-**RPC-Funktionen:**
-- `increment_gosterge_count(uuid)` — Gösterge-Zähler erhöhen
+### Constraints
+
+| Constraint | Typ |
+|------------|-----|
+| `profiles_username_unique` | UNIQUE |
+| `profiles_username_length` | CHECK (2-12 Zeichen) |
+| `rounds_win_type` | CHECK (normal/okey/cifte/okeyCifte) |
+| `rounds_gosterge_confirmers_max` | CHECK (≤4 Confirmers) |
+
+### Storage Buckets
+
+| Bucket | Public | Max Size | Purpose |
+|--------|--------|----------|---------|
+| `round-photos` | ✅ | 10 MB | Runde-Fotos |
+| `training-data` | ✅ | 20 MB | ONNX Trainings-Daten |
 
 ---
 
-## APK Downloads
+## 🚧 Bekannte Einschränkungen
 
-| Version | Datei | Datum |
-|---------|-------|-------|
-| v1.3.1 | `RenkliOkeyScout-v6-debug.apk` | Juli 2026 |
-| v1.3.0 | `RenkliOkeyScout-v8-debug.apk` | Juli 2026 |
-| v1.2.1 | `RenkliOkeyScout-v7-debug.apk` | Juli 2026 |
-| v1.2.0 | `RenkliOkeyScout-v6-debug.apk` | Juli 2026 |
+- **APK-Größe**: 174 MB (Debug-Build, Production ~30 MB)
+- **ONNX Runtime**: Stub-Modus aktiv (warten auf android-36 Support)
+- **Google Sign-In**: Braucht OAuth Client ID + SHA-1 Setup in Google Cloud Console
+- **Apple Sign-In**: TODO
+
+---
+
+## 📜 Versionsverlauf
+
+| Version | Datum | Highlights |
+|---------|-------|------------|
+| **v1.6.2** | Jul 2026 | Production-Ready: DB-Migration 006, Storage-Owner-Check, ImagePicker-Permission |
+| v1.6.1 | Jul 2026 | Gösterge 2-Spieler-Confirm + Lock |
+| v1.6.0 | Jul 2026 | Mahjong-Emoji → OKEY-Text-Logo |
+| v1.5.5 | Jul 2026 | Foto-Upload zu Supabase Storage |
+| v1.5.4 | Jul 2026 | Demo Foto: echte Kamera |
+| v1.5.3 | Jul 2026 | Lobby-Screen Cleanup |
+| v1.5.2 | Jul 2026 | Anonymous Login als Primary |
+| v1.5.1 | Jul 2026 | Nickname-Screen mit Profilen |
+| v1.5.0 | Jul 2026 | Google Sign-In + Login-Screen |
+| v1.4.0 | Jul 2026 | On-Device Vision (autonom) |
+| v1.3.2 | Jul 2026 | M90q Vision-Proxy entfernt + Corner 11-12-13-1 |
+| v1.3.1 | Jul 2026 | Joker-Wildcard + 7 Doppel-Paare |
 
 Alle Releases: [github.com/Jiggy799/renkli-okey-scout/releases](https://github.com/Jiggy799/renkli-okey-scout/releases)
 
 ---
 
-## Offene Tasks
+## 📜 Lizenz
 
-- [ ] ONNX Runtime android-36 Support abwarten → dann Detector aktivieren
+MIT License — Free to use, modify, distribute.
 
-- [ ] Collect-Screen mit Auto-Label-UI für Training-Daten
-- [ ] Multiplayer zwischen zwei Handys testen
-- [ ] App-Icon (mipmap) durch echte Grafik ersetzen
-- [ ] Play Store Veröffentlichung
+**Maintainer:** Jiggy (Ceyhan) • Frankfurt am Main, Germany
+
+---
+
+🎴 **Bereit zum Spielen!** Starte mit "Anonym spielen" und probiere den Demo-Modus aus.
