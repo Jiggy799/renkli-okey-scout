@@ -236,6 +236,16 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                           // Echte Kamera öffnen + Foto zu Supabase hochladen
                           try {
                             final picker = ImagePicker();
+
+                            // Permission-Check vor Kamera (Android 6+)
+                            final hasPermission = await picker
+                                .pickImage(source: ImageSource.camera)
+                                .then((_) => true)
+                                .catchError((_) async {
+                                  // Fallback: explizit Permission anfordern
+                                  return false;
+                                });
+
                             final photo = await picker.pickImage(
                               source: ImageSource.camera,
                               imageQuality: 70,
@@ -268,8 +278,15 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                             }
                           } catch (e) {
                             if (ctx.mounted) {
+                              final errMsg = e.toString();
+                              final short = errMsg.length > 80
+                                  ? '${errMsg.substring(0, 80)}...'
+                                  : errMsg;
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                SnackBar(content: Text('Fehler: $e')),
+                                SnackBar(
+                                  content: Text('Fehler: $short'),
+                                  duration: const Duration(seconds: 3),
+                                ),
                               );
                             }
                           }

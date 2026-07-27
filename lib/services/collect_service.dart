@@ -6,6 +6,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -91,7 +92,7 @@ class CollectService {
       return true;
     } catch (e) {
       // ignore: avoid_print
-      print('Upload failed: $e');
+      debugPrint('Upload failed: $e');
       return false;
     }
   }
