@@ -1,10 +1,12 @@
 // lib/services/auth_service.dart
 // RenkliOkeyScout — Authentication service
 //
-// Bietet drei Authentifizierungsmethoden:
-//   1. Google Sign-In (Primary für Android)
-//   2. Apple Sign-In (Primary für iOS) — TODO
-//   3. Anonymous Sign-In (Demo/Fallback)
+// Bietet mehrere Authentifizierungsmethoden:
+//   1. Google Sign-In (Optional — braucht OAuth Setup)
+//   2. Apple Sign-In (TODO)
+//   3. Email Magic Link (EINFACHSTE echte Auth, kein Setup nötig!)
+//   4. Email + Password (klassisch)
+//   5. Anonymous Sign-In (Demo/Fallback)
 //
 // User-Profil (Username, Avatar) wird automatisch vom Provider übernommen.
 
@@ -70,6 +72,49 @@ class AuthService {
   /// in `profiles` Tabelle gesetzt.
   Future<AuthResponse> signInAnonymously() async {
     return await _supabase.auth.signInAnonymously();
+  }
+
+  /// Email Magic Link Auth (KEIN Google OAuth nötig!)
+  ///
+  /// Supabase schickt einen Login-Link an die angegebene Email.
+  /// User klickt Link → automatisch eingeloggt.
+  ///
+  /// Vorteile:
+  /// - Funktioniert sofort (kein OAuth Setup)
+  /// - Kein Google Cloud Console nötig
+  /// - Keine SHA-1 Fingerabdrücke nötig
+  /// - Echte Identität (Email verifiziert)
+  Future<void> signInWithMagicLink(String email, {String? redirectTo}) async {
+    await _supabase.auth.signInWithOtp(
+      email: email,
+      emailRedirectTo: redirectTo,
+    );
+  }
+
+  /// Email + Password Auth (klassisch)
+  Future<AuthResponse> signInWithEmail({
+    required String email,
+    required String password,
+    bool isSignUp = false,
+  }) async {
+    if (isSignUp) {
+      return await _supabase.auth.signUp(
+        email: email,
+        password: password,
+    );
+    }
+    return await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  /// Sendet OTP-Code per Email (alternative zu Magic Link)
+  Future<void> sendOtpCode(String email) async {
+    await _supabase.auth.signInWithOtp(
+      email: email,
+      shouldCreateUser: true,
+    );
   }
 
   /// Logout.
