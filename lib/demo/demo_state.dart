@@ -68,23 +68,39 @@ class DemoState {
   List<DemoRound> rounds = [];
   String? gostergeShownBy; // who showed gösterge this round
 
-  // Gösterge-Bestätigung: Set von Player-IDs die bestätigt haben
-  // Mindestens 2 verschiedene Spieler müssen bestätigen, dann ist der Gösterge fixiert
-  Set<String> gostergeConfirmedBy = {};
+  // Gösterge-Confirm: Optional, vereinfacht
+  // Map<playerId, bool?> = Hat der Spieler den Gösterge auf der Hand?
+  // null = noch nicht gefragt
+  // true = JA, ich habe ihn
+  // false = NEIN, ich habe ihn nicht
+  Map<String, bool?> gostergeConfirmations = {};
 
-  /// Gösterge ist fixiert wenn mindestens 2 verschiedene Spieler bestätigt haben
-  bool get isGostergeLocked => gostergeConfirmedBy.length >= 2;
+  /// Wurde überhaupt schon jemand gefragt?
+  bool get hasAnyGostergeResponse =>
+      gostergeConfirmations.values.any((v) => v != null);
 
-  /// Spieler bestätigt den aktuellen Gösterge. Returns true wenn neu.
-  bool confirmGosterge(String playerId) {
-    if (isGostergeLocked) return false;
-    return gostergeConfirmedBy.add(playerId);
+  /// Hat mindestens 1 Spieler bestätigt, dass er den Gösterge hat?
+  bool get gostergeIsConfirmed {
+    return gostergeConfirmations.values.any((v) => v == true);
   }
 
-  /// Wer hat schon bestätigt?
-  List<DemoPlayer> get gostergeConfirmers => players
-      .where((p) => gostergeConfirmedBy.contains(p.id))
-      .toList();
+  /// Wer hat den Gösterge (welcher Spieler hat "JA" gesagt)?
+  String? get gostergeConfirmedHolder {
+    for (final entry in gostergeConfirmations.entries) {
+      if (entry.value == true) return entry.key;
+    }
+    return null;
+  }
+
+  /// Spieler gibt seine Antwort zum Gösterge
+  void setGostergeResponse(String playerId, {required bool hasIt}) {
+    gostergeConfirmations[playerId] = hasIt;
+  }
+
+  /// Antwort zurücksetzen
+  void resetGostergeConfirmations() {
+    gostergeConfirmations = {};
+  }
 
   static const List<String> _fakeNames = [
     'Ceyhan', 'Tugrul', 'Hakan', 'Ömer',
@@ -97,7 +113,7 @@ class DemoState {
     rounds = [];
     gostergeShownBy = null;
     gostergeNumber = 13;
-    gostergeConfirmedBy = {};
+    gostergeConfirmations = {};
 
     players = [
       DemoPlayer(id: 'human',   name: 'Du',        seatIndex: 0, isHuman: true),
@@ -114,7 +130,7 @@ class DemoState {
     rounds = [];
     gostergeShownBy = null;
     gostergeNumber = 13;
-    gostergeConfirmedBy = {};
+    gostergeConfirmations = {};
 
     players = [
       DemoPlayer(id: 'human_1', name: 'Spieler 1', seatIndex: 0, isHuman: true),
@@ -205,7 +221,7 @@ class DemoState {
     _advanceGosterge();
     winType = WinType.normal;
     gostergeShownBy = null;
-    gostergeConfirmedBy = {};
+    gostergeConfirmations = {};
   }
 
   void simulateAIPenalties() {
@@ -250,7 +266,7 @@ class DemoState {
     winType = WinType.normal;
     gostergeShownBy = null;
     gostergeNumber = 13;
-    gostergeConfirmedBy = {};
+    gostergeConfirmations = {};
     selectedColor = TileColor.yellow;
   }
 }

@@ -1,11 +1,13 @@
 // lib/screens/demo_round_setup_screen.dart
 // Demo: Gösterge & Farbe VOR jeder Runde definieren
 //
-// FLOW:
-// 1. Spieler X wählt Gösterge (Farbe + Nummer)
-// 2. Andere Spieler müssen bestätigen (mind. 2 von 4)
-// 3. Nach 2 Bestätigungen ist der Gösterge GELOCKT
-// 4. Start-Button wird aktiv
+// FLOW (OPTIONAL - kann komplett übersprungen werden):
+// 1. Spieler wählt Gösterge (Farbe + Nummer)
+// 2. Frage pro Spieler: "Hast du den Gösterge?" → Ja/Nein
+// 3. Wenn mindestens 1 Spieler "Ja" sagt → Bonus für diesen
+// 4. Wenn niemand "Ja" sagt → kein Bonus, trotzdem Runde starten
+//
+// Die Confirm-Logik ist OPTIONAL — die App ist nur ein Zähl-Helfer.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -25,7 +27,6 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
 
   TileColor get _selectedColor => _demo.selectedColor;
   int get _gostergeNumber => _demo.gostergeNumber;
-  bool get _isLocked => _demo.isGostergeLocked;
 
   Color _tileColor(TileColor c) {
     switch (c) {
@@ -44,18 +45,22 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
 
   Color get _tableColorColor => _tileColor(_selectedColor);
 
-  // Der Spieler der gerade "am Zug" ist (für Confirm-UI)
-  String? _activeConfirmer;
+  // Welcher Spieler wird gerade gefragt (für "Wer hat den Gösterge?" UI)
+  String? _askingPlayer;
 
-  void _onConfirm(String playerId) {
+  void _onResponse(String playerId, bool hasIt) {
     setState(() {
-      _demo.confirmGosterge(playerId);
-      _activeConfirmer = null;
+      _demo.setGostergeResponse(playerId, hasIt: hasIt);
+      _askingPlayer = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final bonus = _demo.gostergeIsConfirmed
+        ? berechneGostermeBonus(_selectedColor)
+        : null;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
@@ -71,7 +76,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,18 +92,12 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                _isLocked
-                    ? '✓ Gösterge fixiert — kann nicht mehr geändert werden'
-                    : 'Welcher Stein wurde gezogen?',
+              const Text(
+                'Welcher Stein wurde gezogen?',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _isLocked ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
-                  fontSize: 13,
-                  fontWeight: _isLocked ? FontWeight.bold : FontWeight.normal,
-                ),
+                style: TextStyle(color: Color(0xFF8B949E), fontSize: 13),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Gösterge + Joker tiles
               Row(
@@ -111,143 +110,124 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                   _tileDisplay(_selectedColor, _jokerNumber, 'JOKER'),
                 ],
               ),
+              const SizedBox(height: 24),
+
+              // Farbe wählen
+              const Text(
+                'Tischfarbe',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
+              Row(
+                children: [
+                  _colorBtn(TileColor.yellow, 'Gelb', '×2'),
+                  const SizedBox(width: 8),
+                  _colorBtn(TileColor.blue, 'Blau', '×3'),
+                  const SizedBox(width: 8),
+                  _colorBtn(TileColor.red, 'Rot', '×4'),
+                  const SizedBox(width: 8),
+                  _colorBtn(TileColor.black, 'Schwarz', '×5'),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-              // Lock indicator
-              if (_isLocked)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.lock, color: Color(0xFF3FB950), size: 16),
-                      SizedBox(width: 6),
-                      Text(
-                        'Gösterge fixiert',
-                        style: TextStyle(color: Color(0xFF3FB950), fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+              // Nummer wählen
+              const Text(
+                'Gösterge-Nummer',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161B22),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _tableColorColor),
                 ),
-
-              const SizedBox(height: 32),
-
-              // Farbe wählen — DEAKTIVIERT wenn locked
-              Opacity(
-                opacity: _isLocked ? 0.4 : 1.0,
-                child: IgnorePointer(
-                  ignoring: _isLocked,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Tischfarbe',
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _colorBtn(TileColor.yellow, 'Gelb', '×2'),
-                          const SizedBox(width: 10),
-                          _colorBtn(TileColor.blue, 'Blau', '×3'),
-                          const SizedBox(width: 10),
-                          _colorBtn(TileColor.red, 'Rot', '×4'),
-                          const SizedBox(width: 10),
-                          _colorBtn(TileColor.black, 'Schwarz', '×5'),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Nummer wählen — DEAKTIVIERT wenn locked
-                      const Text(
-                        'Gösterge-Nummer',
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF161B22),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _tableColorColor),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.remove, color: _tableColorColor),
-                              onPressed: _isLocked ? null : () => setState(() {
-                                _demo.gostergeNumber = _demo.gostergeNumber > 1 ? _demo.gostergeNumber - 1 : 13;
-                              }),
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  '$_gostergeNumber',
-                                  style: TextStyle(
-                                    color: _tableColorColor,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.add, color: _tableColorColor),
-                              onPressed: _isLocked ? null : () => setState(() {
-                                _demo.gostergeNumber = _demo.gostergeNumber < 13 ? _demo.gostergeNumber + 1 : 1;
-                              }),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.remove, color: _tableColorColor),
+                      onPressed: () => setState(() {
+                        _demo.gostergeNumber = _demo.gostergeNumber > 1 ? _demo.gostergeNumber - 1 : 13;
+                      }),
+                    ),
+                    Expanded(
+                      child: Center(
                         child: Text(
-                          'Joker: ${_selectedColor.name[0].toUpperCase()}$_jokerNumber',
-                          style: TextStyle(color: _tableColorColor, fontSize: 13),
+                          '$_gostergeNumber',
+                          style: TextStyle(
+                            color: _tableColorColor,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add, color: _tableColorColor),
+                      onPressed: () => setState(() {
+                        _demo.gostergeNumber = _demo.gostergeNumber < 13 ? _demo.gostergeNumber + 1 : 1;
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  'Joker: ${_selectedColor.name[0].toUpperCase()}$_jokerNumber',
+                  style: TextStyle(color: _tableColorColor, fontSize: 12),
                 ),
               ),
 
               const SizedBox(height: 24),
+              const Divider(color: Color(0xFF30363D)),
+              const SizedBox(height: 16),
 
-              // ─── CONFIRM SECTION ────────────────────────────────────────────
-              if (!_isLocked) _buildConfirmSection() else _buildLockedSection(),
+              // ─── Gösterge-Confirm Section (OPTIONAL) ─────────────────────
+              _buildConfirmSection(bonus),
 
-              const Spacer(),
+              const SizedBox(height: 24),
 
-              // Start button — NUR aktiv wenn locked und ≥ 2 Bestätigungen
+              // Start button — IMMER aktiv (kein Lock-Zwang mehr)
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLocked
-                      ? () {
-                          for (final p in _demo.players) {
-                            p.penaltyBasis = 0;
-                            p.isCifte = false;
-                            p.photoSubmitted = false;
-                          }
-                          _demo.winType = WinType.normal;
-                          _demo.gostergeShownBy = null;
-                          context.go('/demo-round');
-                        }
-                      : null,
+                  onPressed: () {
+                    for (final p in _demo.players) {
+                      p.penaltyBasis = 0;
+                      p.isCifte = false;
+                      p.photoSubmitted = false;
+                    }
+                    _demo.winType = WinType.normal;
+
+                    // Bonus an Holder geben, falls bestätigt
+                    final holder = _demo.gostergeConfirmedHolder;
+                    if (holder != null) {
+                      _demo.applyGostermeTo(holder);
+                    } else {
+                      _demo.gostergeShownBy = null;
+                    }
+
+                    context.go('/demo-round');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _tableColorColor,
                     foregroundColor: Colors.black,
-                    disabledBackgroundColor: const Color(0xFF30363D),
-                    disabledForegroundColor: const Color(0xFF6E7681),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: Text(
-                    _isLocked ? 'Runde starten' : 'Noch ${2 - _demo.gostergeConfirmedBy.length} Bestätigung${2 - _demo.gostergeConfirmedBy.length == 1 ? '' : 'en'} nötig',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  child: const Text(
+                    'Runde starten',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  'Tipp: Gösterge-Confirm ist optional',
+                  style: TextStyle(color: Color(0xFF6E7681), fontSize: 11),
                 ),
               ),
             ],
@@ -257,185 +237,166 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
     );
   }
 
-  // ─── Confirm Section (Vor dem Lock) ──────────────────────────────────────
+  Widget _buildConfirmSection(int? bonus) {
+    final bonusText = bonus != null
+        ? 'Bonus: $bonus Punkte für den Halter'
+        : 'Noch kein Halter bestätigt';
 
-  Widget _buildConfirmSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF161B22),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0C000), width: 1.5),
+        border: Border.all(
+          color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF30363D),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.verified, color: Color(0xFFF0C000), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Bestätigung nötig',
-                style: TextStyle(color: Color(0xFFF0C000), fontSize: 14, fontWeight: FontWeight.bold),
+              Icon(
+                bonus != null ? Icons.check_circle : Icons.help_outline,
+                color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
+                size: 18,
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Wer hat den Gösterge?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (_demo.hasAnyGostergeResponse)
+                TextButton(
+                  onPressed: () => setState(() => _demo.resetGostergeConfirmations()),
+                  child: const Text('Reset', style: TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
+                ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            'Mind. 2 Spieler müssen den Gösterge bestätigen.',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 11),
+            bonusText,
+            style: TextStyle(
+              color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 12),
-          // Spieler die schon bestätigt haben
-          if (_demo.gostergeConfirmers.isNotEmpty) ...[
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _demo.gostergeConfirmers.map((p) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+
+          // Status pro Spieler
+          ..._demo.players.map((p) {
+            final response = _demo.gostergeConfirmations[p.id];
+            final hasResponded = response != null;
+            final hasIt = response == true;
+
+            Color bgColor;
+            IconData icon;
+            String label;
+
+            if (!hasResponded) {
+              bgColor = const Color(0xFF21262D);
+              icon = Icons.help_outline;
+              label = 'Noch nicht gefragt';
+            } else if (hasIt) {
+              bgColor = const Color(0xFF3FB950).withValues(alpha: 0.2);
+              icon = Icons.check;
+              label = '✓ Hat Gösterge!';
+            } else {
+              bgColor = const Color(0xFFDA3633).withValues(alpha: 0.15);
+              icon = Icons.close;
+              label = 'Hat ihn nicht';
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3FB950).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFF3FB950)),
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check, color: Color(0xFF3FB950), size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.name,
-                      style: const TextStyle(color: Color(0xFF3FB950), fontSize: 11),
+                    Icon(icon, color: hasResponded
+                        ? (hasIt ? const Color(0xFF3FB950) : const Color(0xFFF85149))
+                        : const Color(0xFF8B949E), size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${p.name}  •  $label',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: hasIt ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
                     ),
+                    if (!hasResponded)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () => _onResponse(p.id, true),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: const Size(0, 0),
+                            ),
+                            child: const Text('Ja', style: TextStyle(color: Color(0xFF3FB950))),
+                          ),
+                          TextButton(
+                            onPressed: () => _onResponse(p.id, false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: const Size(0, 0),
+                            ),
+                            child: const Text('Nein', style: TextStyle(color: Color(0xFFF85149))),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-              )).toList(),
-            ),
-            const SizedBox(height: 12),
-          ],
-          // "Jetzt bestätigen" Dropdown
-          DropdownButton<String>(
-            value: _activeConfirmer,
-            isExpanded: true,
-            hint: const Text(
-              'Spieler wählt: "Ich bestätige"',
-              style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-            ),
-            dropdownColor: const Color(0xFF161B22),
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            items: _demo.players
-                .where((p) => !_demo.gostergeConfirmedBy.contains(p.id))
-                .map((p) => DropdownMenuItem<String>(
-                      value: p.id,
-                      child: Text(p.name),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) _onConfirm(v);
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_demo.gostergeConfirmedBy.length} / 2 Bestätigungen',
-            style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11),
-          ),
+              ),
+            );
+          }),
         ],
       ),
     );
   }
-
-  // ─── Locked Section (Nach 2 Bestätigungen) ──────────────────────────────
-
-  Widget _buildLockedSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3FB950).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF3FB950), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.lock, color: Color(0xFF3FB950), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Gösterge fixiert',
-                style: TextStyle(color: Color(0xFF3FB950), fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Bestätigt von:',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _demo.gostergeConfirmers.map((p) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3FB950).withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.check, color: Color(0xFF3FB950), size: 12),
-                  const SizedBox(width: 4),
-                  Text(
-                    p.name,
-                    style: const TextStyle(color: Color(0xFF3FB950), fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Helpers (von alt übernommen) ────────────────────────────────────────
 
   Widget _tileDisplay(TileColor color, int number, String label) {
     final col = _tileColor(color);
     return Column(
       children: [
-        Opacity(
-          opacity: _isLocked ? 0.7 : 1.0,
-          child: Container(
-            width: 64,
-            height: 64 * 1.35,
-            decoration: BoxDecoration(
-              color: col,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: _isLocked ? const Color(0xFF3FB950) : Colors.white.withValues(alpha: 0.2),
-                width: _isLocked ? 2.5 : 1.5,
+        Container(
+          width: 60,
+          height: 60 * 1.35,
+          decoration: BoxDecoration(
+            color: col,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: col.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: col.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                '$number',
-                style: TextStyle(
-                  color: color == TileColor.yellow || color == TileColor.black
-                      ? Colors.black
-                      : Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28,
-                ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              '$number',
+              style: TextStyle(
+                color: color == TileColor.yellow || color == TileColor.black
+                    ? Colors.black
+                    : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 26,
               ),
             ),
           ),
@@ -461,7 +422,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
       child: GestureDetector(
         onTap: () => setState(() => _demo.selectedColor = color),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? col : col.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
@@ -474,7 +435,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 style: TextStyle(
                   color: isSelected ? Colors.white : col,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
               ),
               const SizedBox(height: 2),
@@ -482,7 +443,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 mult,
                 style: TextStyle(
                   color: isSelected ? Colors.white : col,
-                  fontSize: 11,
+                  fontSize: 10,
                 ),
               ),
             ],
