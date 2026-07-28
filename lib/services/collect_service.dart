@@ -4,10 +4,8 @@
 // Stores labelled tile photos in Supabase Storage + metadata in DB.
 // This is the data that will be used to train the on-device TFLite model.
 
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// One labelled tile inside a training photo.

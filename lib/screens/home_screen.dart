@@ -97,10 +97,10 @@ class _HomeContentState extends State<_HomeContent> {
   Widget build(BuildContext context) {
     final auth = AuthService();
     final user = widget.user;
-    // Anzeige-Name: Nickname aus DB → Google-Name → Auto aus UUID
-    final name = _nickname ??
-        auth.displayName ??
-        'Spieler_${user?.id.substring(0, 4) ?? '0000'}';
+    // Anzeige-Name: Nickname aus DB → AuthService-Name (default: 'Gast')
+    final fallbackName = auth.displayName;
+    final autoName = 'Spieler_${user?.id.substring(0, 4) ?? '0000'}';
+    final name = _nickname ?? (fallbackName.isEmpty ? autoName : fallbackName);
     final avatar = _avatarUrl ?? auth.avatarUrl;
 
     return Scaffold(

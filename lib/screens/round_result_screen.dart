@@ -149,7 +149,7 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
     if (rounds.isNotEmpty) {
       _winnerId = rounds.first['winner_id'] as String?;
       if (rounds.isNotEmpty) {
-        final lastRound = rounds.last as Map<String, dynamic>;
+        final lastRound = rounds.last;
         _winType = WinType.values.firstWhere(
           (w) => w.name == lastRound['win_type'],
           orElse: () => WinType.normal,
@@ -189,8 +189,6 @@ class _RoundResultScreenState extends State<RoundResultScreen> {
   int _penaltyFor(String pid) {
     final basis = _penaltyInputs[pid] ?? 0;
     if (basis <= 0) return 0;
-    final player = _players.firstWhere((p) => p['player_id'] == pid, orElse: () => {});
-    final isCifte = player['is_cifte'] as bool? ?? false;
     // Joker-Multiplikator kommt vom Gewinner.
     return berechneStrafpunkte(
       basisPunkte: basis,

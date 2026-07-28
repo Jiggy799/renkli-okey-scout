@@ -9,8 +9,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../demo/demo_state.dart';
 import '../utils/score_calculator.dart';
-import 'demo_round_result_screen.dart';
-import 'demo_game_over_screen.dart';
 
 class DemoActiveRoundScreen extends StatefulWidget {
   const DemoActiveRoundScreen({super.key});
@@ -32,7 +30,6 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   TileColor get _selectedColor => _demo.selectedColor;
-  int get _gostergeNumber => _demo.gostergeNumber;
   Tile get _gostergeTile => _demo.currentGostergeTile;
   Tile get _jokerTile => _demo.currentJokerTile;
 
@@ -161,17 +158,6 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
     );
   }
 
-  void _endRound() {
-    // AI penalties already simulated in _showPhotoDialog
-    _demo.applyRoundEnd();
-
-    if (_demo.isGameOver) {
-      context.go('/demo-gameover');
-    } else {
-      context.go('/demo-round-result');
-    }
-  }
-
   void _showPhotoDialog() {
     // Simulate AI penalties before photo step
     _demo.simulateAIPenalties();
@@ -236,15 +222,6 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                           // Echte Kamera öffnen + Foto zu Supabase hochladen
                           try {
                             final picker = ImagePicker();
-
-                            // Permission-Check vor Kamera (Android 6+)
-                            final hasPermission = await picker
-                                .pickImage(source: ImageSource.camera)
-                                .then((_) => true)
-                                .catchError((_) async {
-                                  // Fallback: explizit Permission anfordern
-                                  return false;
-                                });
 
                             final photo = await picker.pickImage(
                               source: ImageSource.camera,

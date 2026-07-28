@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 
 import '../demo/demo_state.dart';
 import '../utils/score_calculator.dart';
-import 'demo_active_round_screen.dart';
 
 class DemoRoundSetupScreen extends StatefulWidget {
   const DemoRoundSetupScreen({super.key});

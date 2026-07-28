@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../demo/demo_state.dart';
-import 'demo_active_round_screen.dart';
 
 class DemoLobbyScreen extends StatelessWidget {
   const DemoLobbyScreen({super.key});

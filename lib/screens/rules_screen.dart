@@ -86,15 +86,13 @@ class _Box extends StatelessWidget {
   final String title;
   final Color? borderColor;
   final Widget child;
-  final EdgeInsets padding;
 
-  const _Box({required this.title, this.borderColor, required this.child, this.padding = const EdgeInsets.all(14)});
+  const _Box({required this.title, this.borderColor, required this.child});
 
   @override
   Widget build(BuildContext ctx) {
     return Container(
       width: double.infinity,
-      padding: padding,
       decoration: BoxDecoration(
         color: const Color(0xFF161B22),
         borderRadius: BorderRadius.circular(12),

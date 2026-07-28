@@ -211,12 +211,12 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
   final available = List<Tile>.from(tiles);
 
   // Try to remove a 4-tile series (jokers allowed)
-  bool removedSeries = false;
+
   for (int start = 0; start <= available.length - 4; start++) {
     final subset = available.sublist(start, start + 4);
     if (isValidSeries(subset)) {
       available.removeRange(start, start + 4);
-      removedSeries = true;
+
       break;
     }
   }
