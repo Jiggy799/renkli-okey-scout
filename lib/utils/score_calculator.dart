@@ -242,18 +242,41 @@ int countUngroupedTilesCifte(List<Tile> tiles) {
 }
 
 // ─── Okey helpers ────────────────────────────────────────────────────────────
+// OFFIZIELLE OKEY-REGELN:
+// Es gibt 2 echte Joker pro Runde (gleiche Farbe, Gösterge + 1)
+// Es gibt 2 falsche Joker (Kleeblatt) — verloren wie eine Zahl
 
-/// Gösterge + 1 → Okey-Karte
+/// Gösterge + 1 → Okey-Karte (SINGLE — backward compatibility)
 Tile makeOkeyTile(Tile gosterge) =>
     Tile(gosterge.color, gosterge.number == 13 ? 1 : gosterge.number + 1, isOkey: true);
 
-/// Sahte Okey (Kleeblatt/Stern) — gleiche Position wie Okey, ABER nicht auswählbar
+/// OFFIZIELL: 2 echte Joker pro Runde
+/// Beide haben gleiche Farbe und Gösterge+1
+List<Tile> makeOkeyTiles(Tile gosterge) {
+  final jokerNumber = gosterge.number == 13 ? 1 : gosterge.number + 1;
+  return [
+    Tile(gosterge.color, jokerNumber, isOkey: true),
+    Tile(gosterge.color, jokerNumber, isOkey: true),
+  ];
+}
+
+/// Sahte Okey (Kleeblatt/Stern) — SINGLE — backward compatibility
 Tile makeFalseOkey(Tile gosterge) => Tile(
   gosterge.color,
   gosterge.number == 13 ? 1 : gosterge.number + 1,
   isOkey: true,
   isSahte: true,
 );
+
+/// OFFIZIELL: 2 falsche Joker (Kleeblatt) pro Runde
+/// Position irrelevant — sie sind "verlorene Zahlen" (zählen wie eine fehlende Zahl)
+List<Tile> makeSahteOkeys(Tile gosterge) {
+  final jokerNumber = gosterge.number == 13 ? 1 : gosterge.number + 1;
+  return [
+    Tile(gosterge.color, jokerNumber, isOkey: true, isSahte: true),
+    Tile(gosterge.color, jokerNumber, isOkey: true, isSahte: true),
+  ];
+}
 
 // ─── SYSTEM A: Runden-Strafpunkte ───────────────────────────────────────────
 

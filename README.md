@@ -52,6 +52,14 @@ Eine Flutter-App für Android die Okey-Punkte automatisch berechnet: Gösterge, 
 - Sahte Okey (Stern ⭐ oder Kleeblatt 🍀) = Joker-Ersatz
 - ⚠️ **Kleeblatt/Sahte Okey ist in der App NICHT auswählbar** (visuelle Joker-Markierung)
 
+### Verteilung & Spielstart
+
+- **Beginner der Runde:** bekommt **15 Steine** (einen extra!)
+- **Andere Spieler:** je **14 Steine**
+- **21 Vorratsstapel** zu je 5 Steinen
+- **Würfeln** bestimmt Beginner und Gösterge-Stein
+- Spielrichtung: **im Uhrzeigersinn**
+
 ### Çifte (Paare) — Zwei gültige Varianten
 
 ```
