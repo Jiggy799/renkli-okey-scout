@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../demo/demo_state.dart';
 import '../utils/score_calculator.dart';
@@ -24,11 +25,47 @@ class DemoActiveRoundScreen extends StatefulWidget {
 
 class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
   final _demo = DemoState();
+  final _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _demo.simulateAIPenalties();
+  }
+
+  Future<void> _takePhoto(String playerId) async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+        maxWidth: 1600,
+      );
+      if (photo != null) {
+        setState(() {
+          // Simulate photoSubmitted=true (in echter App: upload to Supabase)
+          final p = _demo.players.firstWhere((pl) => pl.id == playerId);
+          p.photoSubmitted = true;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Foto gespeichert (kein Penalty)'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Color(0xFF3FB950),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Foto fehlgeschlagen: $e'),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+    }
   }
 
   Color _tileColor(TileColor c) {
@@ -112,6 +149,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                   onWinnerToggle: () => setState(() => _demo.players[i].isWinner = !_demo.players[i].isWinner),
                   onRemoveGosterge: () => setState(() => _demo.removeGostergeFrom(_demo.players[i].id)),
                   onApplyGosterge: () => setState(() => _demo.applyGostermeTo(_demo.players[i].id)),
+                  onTakePhoto: () => _takePhoto(_demo.players[i].id),
                   hasGosterge: _demo.hasGostergeHolder == _demo.players[i].id,
                   gostergeHolder: _demo.hasGostergeHolder,
                   winTypeLabel: _winTypeLabel(_demo.players[i].winType),
@@ -190,6 +228,7 @@ class _PlayerCard extends StatelessWidget {
   final VoidCallback onWinnerToggle;
   final VoidCallback onRemoveGosterge;
   final VoidCallback onApplyGosterge;
+  final VoidCallback onTakePhoto;
   final bool hasGosterge;
   final String? gostergeHolder;
   final String winTypeLabel;
@@ -204,6 +243,7 @@ class _PlayerCard extends StatelessWidget {
     required this.onWinnerToggle,
     required this.onRemoveGosterge,
     required this.onApplyGosterge,
+    required this.onTakePhoto,
     required this.hasGosterge,
     required this.gostergeHolder,
     required this.winTypeLabel,
@@ -342,6 +382,59 @@ class _PlayerCard extends StatelessWidget {
                 onTap: onCifteToggle,
               ),
             ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // ─── ZEILE 3.5: FOTO-Button (Kern des Spiels!) ───
+          // Regel: Kein Foto = +100 Strafpunkte
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: player.photoSubmitted
+                  ? const Color(0xFF3FB950).withValues(alpha: 0.15)
+                  : const Color(0xFFDA3633).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: player.photoSubmitted
+                    ? const Color(0xFF3FB950)
+                    : const Color(0xFFDA3633),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  player.photoSubmitted ? Icons.check_circle : Icons.warning_amber,
+                  color: player.photoSubmitted ? const Color(0xFF3FB950) : const Color(0xFFDA3633),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    player.photoSubmitted
+                        ? 'Foto gemacht (kein Penalty)'
+                        : 'Kein Foto = +100 Strafpunkte',
+                    style: TextStyle(
+                      color: player.photoSubmitted ? const Color(0xFF3FB950) : const Color(0xFFDA3633),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (!player.photoSubmitted)
+                  TextButton.icon(
+                    onPressed: onTakePhoto,
+                    icon: const Icon(Icons.photo_camera, size: 16),
+                    label: const Text('Foto'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1F6FEB),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 12),
