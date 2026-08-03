@@ -15,7 +15,7 @@ class DemoPlayer {
   bool isWinner;
   bool isJokerFinish;
   int cumulativePenalty;
-  int penaltyBasis; // stone sum entered for current round
+  List<Tile> schrottTiles; // Schrott-Steine die der Spieler noch übrig hat
   int gostergeShowCount; // System B
   bool photoSubmitted; // System A: no-photo penalty
 
@@ -28,7 +28,7 @@ class DemoPlayer {
     this.isWinner = false,
     this.isJokerFinish = false,
     this.cumulativePenalty = 0,
-    this.penaltyBasis = 0,
+    this.schrottTiles = const [],
     this.gostergeShowCount = 0,
     this.photoSubmitted = false,
   });
@@ -41,6 +41,17 @@ class DemoPlayer {
     if (isCifte) return WinType.cifte;
     return WinType.normal;
   }
+
+  /// Summe aller Schrott-Steine (Zahlen addiert)
+  int get schrottSum {
+    return schrottTiles.fold(0, (sum, t) => sum + t.number);
+  }
+
+  /// Anzahl der Schrott-Steine
+  int get schrottCount => schrottTiles.length;
+
+  /// Penalty-Basis (für Backwards-Kompatibilität)
+  int get penaltyBasis => schrottSum;
 }
 
 // ─── Demo Round ─────────────────────────────────────────────────────────────
@@ -194,9 +205,9 @@ class DemoState {
   /// Berechnet die Strafpunkte für einen Verlierer.
   /// Joker-Multiplikator kommt vom Gewinner (winType).
   int calculatePenalty(DemoPlayer p) {
-    if (p.penaltyBasis == 0) return 0;
+    if (p.schrottTiles.isEmpty) return 0;
     return berechneStrafpunkte(
-      basisPunkte: p.penaltyBasis,
+      basisPunkte: p.schrottSum,
       tableColor: selectedColor,
       winType: winType,
     );
@@ -216,11 +227,11 @@ class DemoState {
       if (!p.photoSubmitted) {
         p.cumulativePenalty += noPhotoPenalty;
       }
-      if (p.penaltyBasis > 0) {
+      if (p.schrottTiles.isNotEmpty) {
         p.cumulativePenalty += calculatePenalty(p);
       }
       // Reset per-round state
-      p.penaltyBasis = 0;
+      p.schrottTiles = [];
       p.isCifte = false;
       p.photoSubmitted = false;
     }
@@ -254,8 +265,16 @@ class DemoState {
   void simulateAIPenalties() {
     final seed = DateTime.now().millisecondsSinceEpoch;
     for (final p in players) {
-      if (!p.isHuman && p.penaltyBasis == 0) {
-        p.penaltyBasis = ((seed + p.id.hashCode) % 25) + 1;
+      if (!p.isHuman && p.schrottTiles.isEmpty) {
+        // Generiere 3-7 Schrott-Steine pro AI-Spieler
+        final numTiles = 3 + ((seed + p.id.hashCode) % 5);
+        final tiles = <Tile>[];
+        for (int i = 0; i < numTiles; i++) {
+          final color = TileColor.values[(seed + p.id.hashCode + i) % 4];
+          final number = 1 + ((seed + p.id.hashCode + i * 7) % 13);
+          tiles.add(Tile(color, number));
+        }
+        p.schrottTiles = tiles;
       }
     }
   }

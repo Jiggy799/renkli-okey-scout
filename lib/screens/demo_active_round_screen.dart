@@ -1,13 +1,17 @@
 // lib/screens/demo_active_round_screen.dart
-// RenkliOkeyScout — Demo Active Round Screen (EINFACH!)
+// RenkliOkeyScout — Demo Active Round Screen (EINFACH & RICHTIG!)
 //
-// Einfaches UI wie ein Zettel:
-//   - 4 Spieler in einer klaren Liste
-//   - Pro Spieler: Steps mit +/− für Strafpunkte
-//   - Live-Anzeige der Multiplikatoren
-//   - Große "Runde auswerten" Button
+// DER KERN: User wählt die Schrott-Steine in der App.
+// App summiert automatisch + multipliziert automatisch.
 //
-// KEIN Foto, KEIN ONNX, KEINE komplizierte Dialoge.
+// Flow pro Spieler:
+//   1. "Schrott-Steine wählen" → Bottom-Sheet mit 4×13 Grid
+//   2. User tippt jeden Stein den der Spieler noch hat
+//   3. App zeigt: "5 Steine, Summe = 47"
+//   4. Multiplikator-Toggles (Gewinner, Joker, Çifte)
+//   5. Foto (optional)
+//   6. Gösterge (optional)
+//   7. Live-Vorschau: "47 × 5 × 2 = 470 Strafpunkte"
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +46,6 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
       );
       if (photo != null) {
         setState(() {
-          // Simulate photoSubmitted=true (in echter App: upload to Supabase)
           final p = _demo.players.firstWhere((pl) => pl.id == playerId);
           p.photoSubmitted = true;
         });
@@ -68,21 +71,30 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
     }
   }
 
+  Future<void> _pickSchrottTiles(DemoPlayer player) async {
+    final result = await showModalBottomSheet<List<Tile>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF161B22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _TilePickerSheet(
+        initialTiles: List.from(player.schrottTiles),
+        jokerTile: _demo.currentJokerTile,
+      ),
+    );
+    if (result != null) {
+      setState(() => player.schrottTiles = result);
+    }
+  }
+
   Color _tileColor(TileColor c) {
     switch (c) {
       case TileColor.yellow: return const Color(0xFFF0C000);
       case TileColor.blue:   return const Color(0xFF1F6FEB);
       case TileColor.red:    return const Color(0xFFDA3633);
       case TileColor.black:  return const Color(0xFF6E7681);
-    }
-  }
-
-  String _winTypeLabel(WinType w) {
-    switch (w) {
-      case WinType.normal:    return 'Normal';
-      case WinType.okey:      return 'Okey';
-      case WinType.cifte:     return 'Çifte';
-      case WinType.okeyCifte: return 'Okey+Çifte';
     }
   }
 
@@ -101,13 +113,12 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ─── HEADER: Tischfarbe + Gösterge Info ───
+            // ─── HEADER ───
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: const Color(0xFF161B22),
               child: Row(
                 children: [
-                  // Tischfarbe Badge
                   Container(
                     width: 36, height: 36,
                     decoration: BoxDecoration(
@@ -122,7 +133,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tischfarbe: ${_demo.selectedColor.name.toUpperCase()} × ${_demo.tableFactor}',
+                          'Tisch: ${_demo.selectedColor.name.toUpperCase()} × ${_demo.tableFactor}',
                           style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         Text(
@@ -143,23 +154,23 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                 itemCount: _demo.players.length,
                 itemBuilder: (ctx, i) => _PlayerCard(
                   player: _demo.players[i],
-                  onBasisChanged: (n) => setState(() => _demo.players[i].penaltyBasis = n),
+                  demo: _demo,
+                  tileColor: _tileColor,
+                  onPickSchrott: () => _pickSchrottTiles(_demo.players[i]),
                   onCifteToggle: () => setState(() => _demo.players[i].isCifte = !_demo.players[i].isCifte),
                   onJokerToggle: () => setState(() => _demo.players[i].isJokerFinish = !_demo.players[i].isJokerFinish),
                   onWinnerToggle: () => setState(() => _demo.players[i].isWinner = !_demo.players[i].isWinner),
                   onRemoveGosterge: () => setState(() => _demo.removeGostergeFrom(_demo.players[i].id)),
                   onApplyGosterge: () => setState(() => _demo.applyGostermeTo(_demo.players[i].id)),
                   onTakePhoto: () => _takePhoto(_demo.players[i].id),
+                  onRemoveSchrottTile: (tile) => setState(() => _demo.players[i].schrottTiles.remove(tile)),
                   hasGosterge: _demo.hasGostergeHolder == _demo.players[i].id,
                   gostergeHolder: _demo.hasGostergeHolder,
-                  winTypeLabel: _winTypeLabel(_demo.players[i].winType),
-                  tableFactor: _demo.tableFactor,
-                  gostergeTile: _demo.currentGostergeTile,
                 ),
               ),
             ),
 
-            // ─── BOTTOM BAR: Ergebnis + Button ───
+            // ─── BOTTOM BAR ───
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -168,19 +179,18 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
               ),
               child: Column(
                 children: [
-                  // Zusammenfassung
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _SummaryChip(
-                        label: 'Höchste',
-                        value: '${_demo.players.map((p) => p.penaltyBasis).reduce((a, b) => a > b ? a : b)}',
-                        color: const Color(0xFFDA3633),
+                        label: 'Σ Schrott',
+                        value: '${_demo.players.fold(0, (s, p) => s + p.schrottSum)}',
+                        color: const Color(0xFFF0C000),
                       ),
                       _SummaryChip(
-                        label: 'Schnitt',
-                        value: (_demo.players.map((p) => p.penaltyBasis).fold(0, (a, b) => a + b) / _demo.players.length).toStringAsFixed(1),
-                        color: const Color(0xFF8B949E),
+                        label: 'Σ Strafpunkte',
+                        value: '${_demo.players.fold(0, (s, p) => s + _demo.calculatePenalty(p))}',
+                        color: const Color(0xFFDA3633),
                       ),
                       _SummaryChip(
                         label: 'Gösterge',
@@ -222,44 +232,44 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
 
 class _PlayerCard extends StatelessWidget {
   final DemoPlayer player;
-  final ValueChanged<int> onBasisChanged;
+  final DemoState demo;
+  final Color Function(TileColor) tileColor;
+  final VoidCallback onPickSchrott;
   final VoidCallback onCifteToggle;
   final VoidCallback onJokerToggle;
   final VoidCallback onWinnerToggle;
   final VoidCallback onRemoveGosterge;
   final VoidCallback onApplyGosterge;
   final VoidCallback onTakePhoto;
+  final void Function(Tile) onRemoveSchrottTile;
   final bool hasGosterge;
   final String? gostergeHolder;
-  final String winTypeLabel;
-  final int tableFactor;
-  final Tile gostergeTile;
 
   const _PlayerCard({
     required this.player,
-    required this.onBasisChanged,
+    required this.demo,
+    required this.tileColor,
+    required this.onPickSchrott,
     required this.onCifteToggle,
     required this.onJokerToggle,
     required this.onWinnerToggle,
     required this.onRemoveGosterge,
     required this.onApplyGosterge,
     required this.onTakePhoto,
+    required this.onRemoveSchrottTile,
     required this.hasGosterge,
     required this.gostergeHolder,
-    required this.winTypeLabel,
-    required this.tableFactor,
-    required this.gostergeTile,
   });
 
   @override
   Widget build(BuildContext context) {
     final isWinner = player.isWinner;
-    final basis = player.penaltyBasis;
+    final tiles = player.schrottTiles;
+    final schrottSum = player.schrottSum;
     final cifte = player.isCifte;
     final joker = player.isJokerFinish;
 
-    // Vorschau Strafpunkte
-    final previewPenalty = basis * tableFactor * (joker ? 2 : 1) * (cifte ? 2 : 1);
+    final previewPenalty = demo.calculatePenalty(player) * (joker ? 2 : 1) * (cifte ? 2 : 1);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -282,7 +292,6 @@ class _PlayerCard extends StatelessWidget {
           // ─── ZEILE 1: Name + Status ───
           Row(
             children: [
-              // Gewinner-Stern
               if (isWinner)
                 const Padding(
                   padding: EdgeInsets.only(right: 8),
@@ -304,14 +313,14 @@ class _PlayerCard extends StatelessWidget {
                     color: const Color(0xFFF0C000).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.local_fire_department, color: Color(0xFFF0C000), size: 14),
-                      const SizedBox(width: 4),
+                      Icon(Icons.local_fire_department, color: Color(0xFFF0C000), size: 14),
+                      SizedBox(width: 4),
                       Text(
                         'Gösterge',
-                        style: const TextStyle(color: Color(0xFFF0C000), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Color(0xFFF0C000), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -321,39 +330,48 @@ class _PlayerCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ─── ZEILE 2: Strafpunkte-Steps ───
-          Row(
-            children: [
-              const Text(
-                'Schrott:',
-                style: TextStyle(color: Color(0xFF8B949E), fontSize: 14),
+          // ─── ZEILE 2: Schrott-Steine wählen ───
+          // DER KERN: User wählt die Schrott-Steine in der App!
+          OutlinedButton.icon(
+            onPressed: onPickSchrott,
+            icon: const Icon(Icons.add_circle_outline, size: 18),
+            label: Text(
+              tiles.isEmpty
+                  ? 'Schrott-Steine wählen'
+                  : '${tiles.length} Schrott-Steine (Summe: $schrottSum)',
+              style: const TextStyle(fontSize: 14),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: tiles.isEmpty
+                  ? const Color(0xFF8B949E)
+                  : const Color(0xFFF0C000),
+              side: BorderSide(
+                color: tiles.isEmpty
+                    ? const Color(0xFF30363D)
+                    : const Color(0xFFF0C000),
               ),
-              const Spacer(),
-              _StepButton(
-                icon: Icons.remove,
-                onPressed: basis > 0 ? () => onBasisChanged(basis - 1) : null,
-              ),
-              Container(
-                width: 50,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '$basis',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              _StepButton(
-                icon: Icons.add,
-                onPressed: basis < 14 ? () => onBasisChanged(basis + 1) : null,
-              ),
-            ],
+              minimumSize: const Size(double.infinity, 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
           ),
 
-          const SizedBox(height: 8),
+          // ─── GEWÄHLTE STEINE (mit X zum Entfernen) ───
+          if (tiles.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: tiles.map((tile) {
+                return _MiniTile(
+                  tile: tile,
+                  color: tileColor(tile.color),
+                  onRemove: () => onRemoveSchrottTile(tile),
+                );
+              }).toList(),
+            ),
+          ],
+
+          const SizedBox(height: 12),
 
           // ─── ZEILE 3: Multiplikator-Toggles ───
           Wrap(
@@ -386,8 +404,7 @@ class _PlayerCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // ─── ZEILE 3.5: FOTO-Button (Kern des Spiels!) ───
-          // Regel: Kein Foto = +100 Strafpunkte
+          // ─── ZEILE 4: FOTO ───
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -437,14 +454,14 @@ class _PlayerCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // ─── ZEILE 4: Gösterge (nur wenn definiert) ───
+          // ─── ZEILE 5: Gösterge ───
           if (gostergeHolder == null)
             OutlinedButton.icon(
               onPressed: onApplyGosterge,
               icon: const Icon(Icons.local_fire_department, size: 16),
-              label: Text('Hat Gösterge (${gostergeTile.color.name.toUpperCase()} ${gostergeTile.number})'),
+              label: Text('Hat Gösterge (${demo.currentGostergeTile.color.name.toUpperCase()} ${demo.currentGostergeTile.number})'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFF0C000),
                 side: const BorderSide(color: Color(0xFFF0C000)),
@@ -463,7 +480,9 @@ class _PlayerCard extends StatelessWidget {
               ),
             ),
 
-          // ─── ZEILE 5: Vorschau ───
+          const SizedBox(height: 12),
+
+          // ─── ZEILE 6: Vorschau ───
           const Divider(color: Color(0xFF30363D), height: 24),
           Row(
             children: [
@@ -473,13 +492,15 @@ class _PlayerCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '$basis × $tableFactor${joker ? " × 2" : ""}${cifte ? " × 2" : ""} = ',
+                tiles.isEmpty
+                    ? '—'
+                    : '$schrottSum × ${demo.tableFactor}${joker ? " × 2" : ""}${cifte ? " × 2" : ""} = ',
                 style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
               ),
               Text(
-                '$previewPenalty',
-                style: const TextStyle(
-                  color: Color(0xFFDA3633),
+                tiles.isEmpty ? '—' : '$previewPenalty',
+                style: TextStyle(
+                  color: tiles.isEmpty ? const Color(0xFF8B949E) : const Color(0xFFDA3633),
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -492,30 +513,261 @@ class _PlayerCard extends StatelessWidget {
   }
 }
 
-// ─── HILFS-WIDGETS ────────────────────────────────────────────────────────────
+// ─── TILE PICKER BOTTOM-SHEET ──────────────────────────────────────────────────
 
-class _StepButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onPressed;
-  const _StepButton({required this.icon, required this.onPressed});
+class _TilePickerSheet extends StatefulWidget {
+  final List<Tile> initialTiles;
+  final Tile jokerTile;
+
+  const _TilePickerSheet({
+    required this.initialTiles,
+    required this.jokerTile,
+  });
+
+  @override
+  State<_TilePickerSheet> createState() => _TilePickerSheetState();
+}
+
+class _TilePickerSheetState extends State<_TilePickerSheet> {
+  late List<Tile> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = List.from(widget.initialTiles);
+  }
+
+  Color _tileColor(TileColor c) {
+    switch (c) {
+      case TileColor.yellow: return const Color(0xFFF0C000);
+      case TileColor.blue:   return const Color(0xFF1F6FEB);
+      case TileColor.red:    return const Color(0xFFDA3633);
+      case TileColor.black:  return const Color(0xFF6E7681);
+    }
+  }
+
+  void _toggle(Tile tile) {
+    setState(() {
+      // Suche gleichen Tile (Farbe + Nummer)
+      final existingIndex = _selected.indexWhere(
+        (t) => t.color == tile.color && t.number == tile.number,
+      );
+      if (existingIndex >= 0) {
+        _selected.removeAt(existingIndex);
+      } else {
+        _selected.add(tile);
+      }
+    });
+  }
+
+  bool _isSelected(Tile tile) {
+    return _selected.any((t) => t.color == tile.color && t.number == tile.number);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF21262D),
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: const BorderSide(color: Color(0xFF30363D)),
-          ),
+    final sum = _selected.fold(0, (s, t) => s + t.number);
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        child: Icon(icon, size: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ─── HEADER ───
+            Row(
+              children: [
+                const Text(
+                  'Schrott-Steine wählen',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Text(
+                  '${_selected.length} Steine · Summe = $sum',
+                  style: const TextStyle(color: Color(0xFFF0C000), fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Tippe auf jeden Stein, den der Spieler noch auf der Hand hat.',
+              style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+
+            // ─── GEWÄHLTE STEINE (Vorschau) ───
+            if (_selected.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1117),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _selected.map((t) => _MiniTile(
+                    tile: t,
+                    color: _tileColor(t.color),
+                    onRemove: () => _toggle(t),
+                  )).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ─── GRID: 4 Farben × 13 Zahlen ───
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: TileColor.values.map((color) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          // Farb-Label
+                          Container(
+                            width: 60,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _tileColor(color),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              color.name.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 13 Zahlen-Buttons
+                          Expanded(
+                            child: Wrap(
+                              spacing: 3,
+                              runSpacing: 3,
+                              children: List.generate(13, (i) => i + 1).map((n) {
+                                final tile = Tile(color, n);
+                                final selected = _isSelected(tile);
+                                final isJoker = tile.color == widget.jokerTile.color &&
+                                                tile.number == widget.jokerTile.number;
+                                return InkWell(
+                                  onTap: () => _toggle(tile),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? _tileColor(color)
+                                          : _tileColor(color).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: isJoker
+                                            ? const Color(0xFF8957E5)
+                                            : _tileColor(color),
+                                        width: isJoker ? 2 : 1,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '$n',
+                                      style: TextStyle(
+                                        color: selected ? Colors.white : _tileColor(color),
+                                        fontSize: 12,
+                                        fontWeight: isJoker ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ─── BUTTONS: OK / ABBRECHEN ───
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Abbrechen'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(_selected),
+                    child: Text(
+                      _selected.isEmpty
+                          ? 'Leere Hand (0)'
+                          : 'OK ($_selected.length, Summe $sum)',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── HILFS-WIDGETS ────────────────────────────────────────────────────────────
+
+class _MiniTile extends StatelessWidget {
+  final Tile tile;
+  final Color color;
+  final VoidCallback onRemove;
+
+  const _MiniTile({required this.tile, required this.color, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${tile.color.name[0].toUpperCase()}${tile.number}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onRemove,
+            child: const Icon(Icons.close, color: Colors.white, size: 14),
+          ),
+        ],
       ),
     );
   }

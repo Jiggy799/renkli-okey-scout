@@ -196,7 +196,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     for (final p in _demo.players) {
-                      p.penaltyBasis = 0;
+                      p.schrottTiles = [];
                       p.isCifte = false;
                       p.photoSubmitted = false;
                     }
