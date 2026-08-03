@@ -12,6 +12,8 @@ class DemoPlayer {
   final int seatIndex;
   bool isCifte;
   bool isHuman;
+  bool isWinner;
+  bool isJokerFinish;
   int cumulativePenalty;
   int penaltyBasis; // stone sum entered for current round
   int gostergeShowCount; // System B
@@ -23,11 +25,22 @@ class DemoPlayer {
     required this.seatIndex,
     this.isCifte = false,
     this.isHuman = false,
+    this.isWinner = false,
+    this.isJokerFinish = false,
     this.cumulativePenalty = 0,
     this.penaltyBasis = 0,
     this.gostergeShowCount = 0,
     this.photoSubmitted = false,
   });
+
+  /// WinType dieses Spielers (für diese Runde)
+  /// Hängt ab von Joker/Çifte-Toggles
+  WinType get winType {
+    if (isJokerFinish && isCifte) return WinType.okeyCifte;
+    if (isJokerFinish) return WinType.okey;
+    if (isCifte) return WinType.cifte;
+    return WinType.normal;
+  }
 }
 
 // ─── Demo Round ─────────────────────────────────────────────────────────────
@@ -100,6 +113,20 @@ class DemoState {
   /// Antwort zurücksetzen
   void resetGostergeConfirmations() {
     gostergeConfirmations = {};
+  }
+
+  /// Wer hat den Gösterge? (basierend auf Confirmations)
+  /// Vereinfacht: Wer hat "JA" gesagt?
+  String? get hasGostergeHolder => gostergeConfirmedHolder;
+
+  /// Gösterge von einem Spieler entfernen
+  void removeGostergeFrom(String playerId) {
+    if (gostergeConfirmations[playerId] == true) {
+      gostergeConfirmations[playerId] = false;
+    }
+    if (gostergeShownBy == playerId) {
+      gostergeShownBy = null;
+    }
   }
 
   static const List<String> _fakeNames = [
