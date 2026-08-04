@@ -281,6 +281,11 @@ class DemoState {
 
   bool get isGameOver => currentRound > 11;
 
+  /// Gösterge-Bonus (negativ) — public für UI-Anzeige
+  int berechneGostermeBonus(TileColor color) {
+    return berechneGostermeStrafe(color);  // = -tableColorFactor (×10 = -50 für schwarz)
+  }
+
   /// Summe aller Gösterge-Boni (System B).
   /// Bonus = negativ (reduziert Endabrechnung).
   int gostergeBonusFor(String playerId) {

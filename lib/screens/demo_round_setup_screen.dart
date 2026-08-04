@@ -1,13 +1,9 @@
 // lib/screens/demo_round_setup_screen.dart
-// Demo: Gösterge & Farbe VOR jeder Runde definieren
+// RenkliOkeyScout — Demo Round Setup
 //
-// FLOW (OPTIONAL - kann komplett übersprungen werden):
-// 1. Spieler wählt Gösterge (Farbe + Nummer)
-// 2. Frage pro Spieler: "Hast du den Gösterge?" → Ja/Nein
-// 3. Wenn mindestens 1 Spieler "Ja" sagt → Bonus für diesen
-// 4. Wenn niemand "Ja" sagt → kein Bonus, trotzdem Runde starten
-//
-// Die Confirm-Logik ist OPTIONAL — die App ist nur ein Zähl-Helfer.
+// EIN-FÜR-ALLEMAL: Tischfarbe + Gösterge-Nummer wählen
+// KEINE fragwürdigen Bestätigungen, KEINE Bonus-Popups
+// Spieler-Stats werden PRO Runde sichtbar
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -25,9 +21,6 @@ class DemoRoundSetupScreen extends StatefulWidget {
 class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
   final _demo = DemoState();
 
-  TileColor get _selectedColor => _demo.selectedColor;
-  int get _gostergeNumber => _demo.gostergeNumber;
-
   Color _tileColor(TileColor c) {
     switch (c) {
       case TileColor.yellow: return const Color(0xFFF0C000);
@@ -37,35 +30,21 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
     }
   }
 
+  Color get _tableColorColor => _tileColor(_demo.selectedColor);
+
   int get _jokerNumber {
-    int j = _gostergeNumber + 1;
+    int j = _demo.gostergeNumber + 1;
     if (j > 13) j = 1;
     return j;
   }
 
-  Color get _tableColorColor => _tileColor(_selectedColor);
-
-  // Welcher Spieler wird gerade gefragt (für "Wer hat den Gösterge?" UI)
-  String? _askingPlayer;
-
-  void _onResponse(String playerId, bool hasIt) {
-    setState(() {
-      _demo.setGostergeResponse(playerId, hasIt: hasIt);
-      _askingPlayer = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bonus = _demo.gostergeIsConfirmed
-        ? berechneGostermeBonus(_selectedColor)
-        : null;
-
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         title: Text(
-          'Runde ${_demo.currentRound}/11 · Setup',
+          'Runde ${_demo.currentRound} / 11',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF161B22),
@@ -81,40 +60,86 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
+              // ─── HEADER ───
               const Text(
-                'Gösterge definieren',
+                'Runde einrichten',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               const Text(
-                'Welcher Stein wurde gezogen?',
+                'Wer hat gewonnen? Tischfarbe? Gösterge?',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Color(0xFF8B949E), fontSize: 13),
               ),
               const SizedBox(height: 24),
 
-              // Gösterge + Joker tiles
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _tileDisplay(_selectedColor, _gostergeNumber, 'GÖSTERGE'),
-                  const SizedBox(width: 24),
-                  Icon(Icons.arrow_forward, color: _tableColorColor.withValues(alpha: 0.5), size: 20),
-                  const SizedBox(width: 24),
-                  _tileDisplay(_selectedColor, _jokerNumber, 'JOKER'),
-                ],
+              // ─── GEWINNER-AUSWAHL (nur 1!) ───
+              const Text(
+                '1. Wer hat gewonnen?',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
+              const SizedBox(height: 8),
+              ..._demo.players.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: InkWell(
+                  onTap: () => setState(() {
+                    // SINGLE-WINNER: alle anderen zurücksetzen
+                    for (final other in _demo.players) {
+                      other.isWinner = (other.id == p.id);
+                    }
+                  }),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: p.isWinner
+                          ? const Color(0xFF3FB950).withValues(alpha: 0.2)
+                          : const Color(0xFF161B22),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: p.isWinner
+                            ? const Color(0xFF3FB950)
+                            : const Color(0xFF30363D),
+                        width: p.isWinner ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          p.isWinner ? Icons.emoji_events : Icons.person_outline,
+                          color: p.isWinner ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          p.name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: p.isWinner ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (p.isWinner)
+                          const Text(
+                            'Gewinner',
+                            style: TextStyle(color: Color(0xFF3FB950), fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              )),
               const SizedBox(height: 24),
 
-              // Farbe wählen
+              // ─── TISCHFARBE ───
               const Text(
-                'Tischfarbe',
+                '2. Tischfarbe (× Multiplikator)',
                 style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -129,11 +154,11 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                   _colorBtn(TileColor.black, 'Schwarz', '×5'),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // Nummer wählen
+              // ─── GÖSTERGE-NUMMER ───
               const Text(
-                'Gösterge-Nummer',
+                '3. Gösterge-Nummer (welcher Stein wurde aufgedeckt?)',
                 style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -145,27 +170,29 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                   border: Border.all(color: _tableColorColor),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.remove, color: _tableColorColor),
+                      icon: Icon(Icons.remove, color: _tableColorColor, size: 28),
                       onPressed: () => setState(() {
                         _demo.gostergeNumber = _demo.gostergeNumber > 1 ? _demo.gostergeNumber - 1 : 13;
                       }),
                     ),
-                    Expanded(
+                    SizedBox(
+                      width: 60,
                       child: Center(
                         child: Text(
-                          '$_gostergeNumber',
+                          '${_demo.gostergeNumber}',
                           style: TextStyle(
                             color: _tableColorColor,
-                            fontSize: 32,
+                            fontSize: 36,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.add, color: _tableColorColor),
+                      icon: Icon(Icons.add, color: _tableColorColor, size: 28),
                       onPressed: () => setState(() {
                         _demo.gostergeNumber = _demo.gostergeNumber < 13 ? _demo.gostergeNumber + 1 : 1;
                       }),
@@ -173,48 +200,56 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Center(
                 child: Text(
-                  'Joker: ${_selectedColor.name[0].toUpperCase()}$_jokerNumber',
-                  style: TextStyle(color: _tableColorColor, fontSize: 12),
+                  'Gösterge: ${_demo.selectedColor.name.toUpperCase()} ${_demo.gostergeNumber}  →  Joker: ${_demo.selectedColor.name.toUpperCase()} $_jokerNumber',
+                  style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
                 ),
               ),
-
-              const SizedBox(height: 24),
-              const Divider(color: Color(0xFF30363D)),
-              const SizedBox(height: 16),
-
-              // ─── Gösterge-Confirm Section (OPTIONAL) ─────────────────────
-              _buildConfirmSection(bonus),
-
               const SizedBox(height: 24),
 
-              // Start button — IMMER aktiv (kein Lock-Zwang mehr)
+              // ─── ÇIFTE ───
+              const Text(
+                '4. Çifte (5/7-Paare)?',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _cifteBtn(false, 'Nein', 'Normaler Finish'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _cifteBtn(true, 'Ja', '5 Paare + Reihe'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // ─── START BUTTON ───
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
+                    // WINNER-CHECK: kein Gewinner → erlauben, oder blockieren?
+                    // Strategie: KEIN Gewinner = Runde ist "alle verloren"
+                    // (selten, aber möglich bei Server-Stapel leer)
+                    _demo.winType = WinType.normal; // wird im active round pro spieler überschrieben
                     for (final p in _demo.players) {
                       p.schrottTiles = [];
                       p.isCifte = false;
+                      p.isJokerFinish = false;
                       p.photoSubmitted = false;
                     }
-                    _demo.winType = WinType.normal;
-
-                    // Bonus an Holder geben, falls bestätigt
-                    final holder = _demo.gostergeConfirmedHolder;
-                    if (holder != null) {
-                      _demo.applyGostermeTo(holder);
-                    } else {
-                      _demo.gostergeShownBy = null;
-                    }
-
+                    _demo.gostergeShownBy = null;
                     context.go('/demo-round');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _tableColorColor,
-                    foregroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF238636),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: const Text(
@@ -224,205 +259,30 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  'Tipp: Gösterge-Confirm ist optional',
-                  style: TextStyle(color: Color(0xFF6E7681), fontSize: 11),
+
+              // ─── ABORT ───
+              TextButton(
+                onPressed: () => _showExitDialog(),
+                child: const Text(
+                  'Spiel beenden',
+                  style: TextStyle(color: Color(0xFF6E7681)),
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildConfirmSection(int? bonus) {
-    final bonusText = bonus != null
-        ? 'Bonus: $bonus Punkte für den Halter'
-        : 'Noch kein Halter bestätigt';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF30363D),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                bonus != null ? Icons.check_circle : Icons.help_outline,
-                color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Wer hat den Gösterge?',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (_demo.hasAnyGostergeResponse)
-                TextButton(
-                  onPressed: () => setState(() => _demo.resetGostergeConfirmations()),
-                  child: const Text('Reset', style: TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            bonusText,
-            style: TextStyle(
-              color: bonus != null ? const Color(0xFF3FB950) : const Color(0xFF8B949E),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Status pro Spieler
-          ..._demo.players.map((p) {
-            final response = _demo.gostergeConfirmations[p.id];
-            final hasResponded = response != null;
-            final hasIt = response == true;
-
-            Color bgColor;
-            IconData icon;
-            String label;
-
-            if (!hasResponded) {
-              bgColor = const Color(0xFF21262D);
-              icon = Icons.help_outline;
-              label = 'Noch nicht gefragt';
-            } else if (hasIt) {
-              bgColor = const Color(0xFF3FB950).withValues(alpha: 0.2);
-              icon = Icons.check;
-              label = '✓ Hat Gösterge!';
-            } else {
-              bgColor = const Color(0xFFDA3633).withValues(alpha: 0.15);
-              icon = Icons.close;
-              label = 'Hat ihn nicht';
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, color: hasResponded
-                        ? (hasIt ? const Color(0xFF3FB950) : const Color(0xFFF85149))
-                        : const Color(0xFF8B949E), size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${p.name}  •  $label',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: hasIt ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                    if (!hasResponded)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton(
-                            onPressed: () => _onResponse(p.id, true),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              minimumSize: const Size(0, 0),
-                            ),
-                            child: const Text('Ja', style: TextStyle(color: Color(0xFF3FB950))),
-                          ),
-                          TextButton(
-                            onPressed: () => _onResponse(p.id, false),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              minimumSize: const Size(0, 0),
-                            ),
-                            child: const Text('Nein', style: TextStyle(color: Color(0xFFF85149))),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _tileDisplay(TileColor color, int number, String label) {
-    final col = _tileColor(color);
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60 * 1.35,
-          decoration: BoxDecoration(
-            color: col,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: col.withValues(alpha: 0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '$number',
-              style: TextStyle(
-                color: color == TileColor.yellow || color == TileColor.black
-                    ? Colors.black
-                    : Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 26,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            color: col,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
-        ),
-      ],
     );
   }
 
   Widget _colorBtn(TileColor color, String name, String mult) {
-    final isSelected = _selectedColor == color;
+    final isSelected = _demo.selectedColor == color;
     final col = _tileColor(color);
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _demo.selectedColor = color),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isSelected ? col : col.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
@@ -435,7 +295,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 style: TextStyle(
                   color: isSelected ? Colors.white : col,
                   fontWeight: FontWeight.bold,
-                  fontSize: 11,
+                  fontSize: 12,
                 ),
               ),
               const SizedBox(height: 2),
@@ -443,11 +303,55 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
                 mult,
                 style: TextStyle(
                   color: isSelected ? Colors.white : col,
-                  fontSize: 10,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cifteBtn(bool isCifte, String title, String subtitle) {
+    final isSelected = _demo.winType == WinType.cifte || _demo.winType == WinType.okeyCifte;
+    final target = isCifte;
+    return InkWell(
+      onTap: () => setState(() {
+        _demo.winType = target ? WinType.cifte : WinType.normal;
+      }),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected == target
+              ? const Color(0xFF1F6FEB).withValues(alpha: 0.2)
+              : const Color(0xFF161B22),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected == target
+                ? const Color(0xFF1F6FEB)
+                : const Color(0xFF30363D),
+            width: isSelected == target ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11),
+            ),
+          ],
         ),
       ),
     );
@@ -458,9 +362,9 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text('Demo verlassen?', style: TextStyle(color: Colors.white)),
+        title: const Text('Spiel beenden?', style: TextStyle(color: Colors.white)),
         content: const Text(
-          'Ungespeicherte Daten gehen verloren.',
+          'Alle Runden-Daten gehen verloren.',
           style: TextStyle(color: Color(0xFF8B949E)),
         ),
         actions: [
@@ -475,7 +379,7 @@ class _DemoRoundSetupScreenState extends State<DemoRoundSetupScreen> {
               context.go('/');
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDA3633)),
-            child: const Text('Verlassen'),
+            child: const Text('Beenden'),
           ),
         ],
       ),
