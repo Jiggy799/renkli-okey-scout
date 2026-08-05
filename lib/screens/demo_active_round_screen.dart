@@ -58,7 +58,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         title: Text(
-          'Runde ${_demo.currentRound} / 11',
+          'Runde ${_demo.currentRound} / 11 (DEMO)',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF161B22),
@@ -67,6 +67,28 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // ─── DEMO-BANNER (ehrlich) ───
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              color: const Color(0xFFF0C000).withValues(alpha: 0.15),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Color(0xFFF0C000), size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'DEMO-MODUS: KI-Erkennung ist ein Stub. Steine sind zufällig.',
+                      style: TextStyle(
+                        color: const Color(0xFFF0C000).withValues(alpha: 0.9),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // ─── HEADER (kompakt) ───
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -222,11 +244,16 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
         final sum = player.schrottSum;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '✓ ${player.schrottTiles.length} Steine erkannt (Summe: $sum)',
+            content: const Text(
+              '⚠ DEMO-MODUS: Zufällige Steine generiert — echte KI-Erkennung kommt bald',
             ),
-            duration: const Duration(seconds: 2),
-            backgroundColor: const Color(0xFF3FB950),
+            duration: const Duration(seconds: 4),
+            backgroundColor: const Color(0xFFF0C000),
+            action: SnackBarAction(
+              label: 'Verstanden',
+              textColor: Colors.black,
+              onPressed: () {},
+            ),
           ),
         );
       }
