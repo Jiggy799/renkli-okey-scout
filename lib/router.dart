@@ -63,6 +63,10 @@ final router = GoRouter(
     if (user == null && !isLogin && !isDemo) {
       return '/login';
     }
+    // Anonymer User → direkt zum Home (kein Login nötig, kein Account-Upgrade möglich)
+    if (user != null && user.isAnonymous && !isLogin && !isDemo) {
+      return '/';
+    }
     // Angemeldet aber auf /login → Nickname (oder Home wenn schon gesetzt)
     if (user != null && isLogin) {
       if (await _needsNickname()) return '/nickname';
