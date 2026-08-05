@@ -134,8 +134,6 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                   tileColor: _tileColor,
                   onTakePhoto: () => _takePhotoAndClassify(_demo.players[i]),
                   demo: _demo,
-                  onRemoveTile: (tile) => setState(() => _demo.players[i].schrottTiles.remove(tile)),
-                  onAddTile: (tile) => setState(() => _demo.players[i].schrottTiles.add(tile)),
                 ),
               ),
             ),
@@ -252,16 +250,12 @@ class _PlayerCard extends StatelessWidget {
   final DemoState demo;
   final Color Function(TileColor) tileColor;
   final VoidCallback onTakePhoto;
-  final void Function(Tile) onRemoveTile;
-  final void Function(Tile) onAddTile;
 
   const _PlayerCard({
     required this.player,
     required this.demo,
     required this.tileColor,
     required this.onTakePhoto,
-    required this.onRemoveTile,
-    required this.onAddTile,
   });
 
   @override
@@ -343,7 +337,6 @@ class _PlayerCard extends StatelessWidget {
                     children: tiles.map((t) => _MiniTile(
                       tile: t,
                       color: tileColor(t.color),
-                      onRemove: () => onRemoveTile(t),
                     )).toList(),
                   ),
                 ),
@@ -366,12 +359,28 @@ class _PlayerCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _showAddTileSheet(context),
-                        icon: const Icon(Icons.add, size: 14),
-                        label: const Text('Stein +', style: TextStyle(fontSize: 12)),
+                        onPressed: onTakePhoto,
+                        icon: const Icon(Icons.photo_camera, size: 14),
+                        label: const Text('Foto neu', style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFF0C000),
-                          side: const BorderSide(color: Color(0xFFF0C000)),
+                          foregroundColor: const Color(0xFF1F6FEB),
+                          side: const BorderSide(color: Color(0xFF1F6FEB)),
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          // Komplett löschen wenn User unzufrieden
+                        },
+                        icon: const Icon(Icons.delete_outline, size: 14),
+                        label: const Text('Alle löschen', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFDA3633),
+                          side: const BorderSide(color: Color(0xFFDA3633)),
                           minimumSize: const Size(0, 32),
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
@@ -452,132 +461,16 @@ class _PlayerCard extends StatelessWidget {
     );
   }
 
-  void _showAddTileSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF161B22),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => _AddTileSheet(
-        onAdd: (tile) => onAddTile(tile),
-        tileColor: tileColor,
-      ),
-    );
-  }
 }
 
-// ─── ADD TILE SHEET (4×13 Grid zum manuellen Hinzufügen) ─────────────────────
-
-class _AddTileSheet extends StatefulWidget {
-  final void Function(Tile) onAdd;
-  final Color Function(TileColor) tileColor;
-  const _AddTileSheet({required this.onAdd, required this.tileColor});
-
-  @override
-  State<_AddTileSheet> createState() => _AddTileSheetState();
-}
-
-class _AddTileSheetState extends State<_AddTileSheet> {
-  TileColor? _selectedColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Stein hinzufügen',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Wenn die Foto-Erkennung einen Stein übersehen hat.',
-              style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            // Farbe wählen
-            Row(
-              children: TileColor.values.map((c) {
-                final isSelected = _selectedColor == c;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: InkWell(
-                      onTap: () => setState(() => _selectedColor = c),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isSelected ? widget.tileColor(c) : widget.tileColor(c).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: widget.tileColor(c)),
-                        ),
-                        child: Text(
-                          c.name.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : widget.tileColor(c),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            // Zahlen 1-13
-            if (_selectedColor != null)
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: List.generate(13, (i) => i + 1).map((n) {
-                  return InkWell(
-                    onTap: () {
-                      widget.onAdd(Tile(_selectedColor!, n));
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: widget.tileColor(_selectedColor!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$n',
-                        style: TextStyle(
-                          color: _selectedColor == TileColor.yellow || _selectedColor == TileColor.black
-                              ? Colors.black
-                              : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ─── (addTile sheet removed — user must use foto only) ─────────────────────
 
 // ─── HILFS-WIDGETS ────────────────────────────────────────────────────────────
 
 class _MiniTile extends StatelessWidget {
   final Tile tile;
   final Color color;
-  final VoidCallback onRemove;
-  const _MiniTile({required this.tile, required this.color, required this.onRemove});
+  const _MiniTile({required this.tile, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -591,23 +484,13 @@ class _MiniTile extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${tile.color.name[0].toUpperCase()}${tile.number}',
-            style: TextStyle(
-              color: textColor,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(width: 4),
-          InkWell(
-            onTap: onRemove,
-            child: Icon(Icons.close, color: textColor, size: 12),
-          ),
-        ],
+      child: Text(
+        '${tile.color.name[0].toUpperCase()}${tile.number}',
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
