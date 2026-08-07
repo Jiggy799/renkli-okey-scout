@@ -1,0 +1,39 @@
+name: Build APK
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          architecture: x64
+
+      - run: flutter pub get
+
+      - run: flutter build apk --debug
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renkli-okey-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
