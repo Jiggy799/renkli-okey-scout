@@ -162,7 +162,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
   // ─── Join via QR scan ──────────────────────────────────────────────────────
 
   void _onQrDetected(BarcodeCapture capture) {
-    if (_isScanning) return;
+    // Nur verarbeiten wenn Scanner aktiv
+    if (!_isScanning) return;
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null) return;
 
