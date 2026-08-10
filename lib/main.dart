@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'router.dart';
+import 'services/gemini_vision_service.dart';
 
 const _supabaseUrl = 'https://ntssssvyyptvdjerbtll.supabase.co';
 // NOTE: publishable key replaces the legacy anon key in new Supabase projects
@@ -14,6 +17,17 @@ const _supabaseAnonKey = 'sb_publishable__hUBkkdBMwH0g-CUSIY17Q_sQmOsm0K';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load saved Gemini API-Key
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final key = prefs.getString('gemini_api_key');
+    if (key != null && key.isNotEmpty) {
+      GeminiVisionService.initialize(key);
+    }
+  } catch (e) {
+    debugPrint('Gemini key load failed: \$e');
+  }
 
   // Lock to portrait
   await SystemChrome.setPreferredOrientations([
