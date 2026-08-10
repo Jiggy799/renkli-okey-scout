@@ -1,441 +1,262 @@
 // lib/screens/home_screen.dart
-// RenkliOkeyScout — Home: Willkommen + Aktionen
+// RenkliOkeyScout — Home Screen (EINFACH + KLAR)
 //
-// Username + Avatar kommen automatisch vom Provider (Google/Anonymous).
-// Kein manuelles Username-Feld mehr.
+// ZWEI grosse Buttons:
+// 1. DEMO MODUS — Komplett offline, ohne Supabase
+// 2. ONLINE SPIELEN — Mit Freunden, erfordert Anmeldung
+//
+// Plus: Settings, Regelwerk, Logout
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
-import 'tutorial_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  Future<void> _checkTutorial() async {
-    final prefs = await SharedPreferences.getInstance();
-    final seen = prefs.getBool('tutorial_seen') ?? false;
-    if (!seen && mounted) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (ctx) => TutorialScreen(
-            onComplete: () async {
-              await prefs.setBool('tutorial_seen', true);
-              if (mounted) Navigator.pop(ctx);
-            },
-          ),
-          fullscreenDialog: true,
-        ),
-      );
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkTutorial();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     final auth = AuthService();
     final user = auth.currentUser;
-    return _HomeContent(user: user);
-  }
-}
-
-class _HomeContent extends StatefulWidget {
-  final User? user;
-  const _HomeContent({required this.user});
-
-  @override
-  State<_HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<_HomeContent> {
-  String? _nickname;
-  String? _avatarUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    final user = widget.user;
-    if (user == null) return;
-
-    try {
-      final res = await Supabase.instance.client
-          .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (res != null && mounted) {
-        setState(() {
-          _nickname = res['username'];
-          _avatarUrl = res['avatar_url'];
-        });
-      }
-    } catch (_) {}
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = AuthService();
-    final user = widget.user;
-    // Anzeige-Name: Nickname aus DB → AuthService-Name (default: 'Gast')
-    final fallbackName = auth.displayName;
-    final autoName = 'Spieler_${user?.id.substring(0, 4) ?? '0000'}';
-    final name = _nickname ?? (fallbackName.isEmpty ? autoName : fallbackName);
-    final avatar = _avatarUrl ?? auth.avatarUrl;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
+        title: const Text(
+          'RenkliOkeyScout',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFF161B22),
         elevation: 0,
         actions: [
-          // Profil bearbeiten
           IconButton(
-            tooltip: 'Profil bearbeiten',
-            icon: const Icon(Icons.edit, color: Color(0xFF8B949E)),
-            onPressed: () => context.push('/profile'),
+            icon: const Icon(Icons.menu_book, color: Colors.white),
+            tooltip: 'Regelwerk',
+            onPressed: () => context.push('/rules'),
           ),
-          // Logout
           IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            tooltip: 'Einstellungen',
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ─── WELCOME ───
+              const SizedBox(height: 20),
+              const Text(
+                'OKEY',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Hallo ${auth.displayName}!',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF8B949E), fontSize: 14),
+              ),
+              const SizedBox(height: 32),
+
+              // ─── DEMO MODUS (gross) ───
+              _ModeCard(
+                title: 'DEMO-MODUS',
+                subtitle: 'Lokal testen\nKein Internet nötig',
+                icon: Icons.science,
+                color: const Color(0xFFF0C000),
+                onTap: () => context.go('/demo-lobby'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ─── ONLINE MODUS (gross) ───
+              _ModeCard(
+                title: 'ONLINE SPIELEN',
+                subtitle: 'Tisch erstellen oder joinen\n4 Spieler gleichzeitig',
+                icon: Icons.group,
+                color: const Color(0xFF238636),
+                onTap: () => context.go('/lobby'),
+              ),
+
+              const SizedBox(height: 32),
+
+              // ─── USER INFO ───
+              if (user != null)
+                _UserInfoCard(user: user, auth: auth)
+              else
+                const Text(
+                  'Nicht angemeldet',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF6E7681), fontSize: 12),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── MODE CARD ────────────────────────────────────────────────────────────────
+
+class _ModeCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ModeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF8B949E),
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward, color: color, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── USER INFO CARD ───────────────────────────────────────────────────────────
+
+class _UserInfoCard extends StatelessWidget {
+  final User user;
+  final AuthService auth;
+
+  const _UserInfoCard({required this.user, required this.auth});
+
+  @override
+  Widget build(BuildContext context) {
+    final isAnonymous = user.isAnonymous;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isAnonymous
+              ? const Color(0xFFF0C000)
+              : const Color(0xFF3FB950),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: isAnonymous
+                  ? const Color(0xFFF0C000)
+                  : const Color(0xFF3FB950),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                auth.displayName[0].toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  auth.displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  isAnonymous ? 'Anonymer Account' : 'Mit Google angemeldet',
+                  style: TextStyle(
+                    color: isAnonymous
+                        ? const Color(0xFFF0C000)
+                        : const Color(0xFF3FB950),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFF8B949E), size: 20),
             tooltip: 'Abmelden',
-            icon: const Icon(Icons.logout, color: Color(0xFF8B949E)),
             onPressed: () async {
               await auth.signOut();
               if (context.mounted) context.go('/login');
             },
           ),
         ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-
-                // User-Bereich: Avatar + Name
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF161B22),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF30363D)),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: const Color(0xFF238636),
-                        backgroundImage:
-                            avatar != null ? NetworkImage(avatar) : null,
-                        child: avatar == null
-                            ? Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              user?.isAnonymous == true
-                                  ? '👤 Anonymer Spieler'
-                                  : '🔐 Angemeldet',
-                              style: const TextStyle(
-                                color: Color(0xFF8B949E),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-                _buildLogo(),
-                const SizedBox(height: 8),
-                const Text(
-                  'RenkliOkeyScout',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Okey Score Tracker',
-                  style: TextStyle(
-                    color: Color(0xFF8B949E),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Online-Modus Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.go('/lobby'),
-                    icon: const Icon(Icons.people, color: Colors.white),
-                    label: const Text(
-                      'Online spielen (Multiplayer)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF238636),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Demo Button
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/demo-lobby'),
-                    icon: const Icon(Icons.science, color: Color(0xFFF0C000)),
-                    label: const Text(
-                      'Demo-Modus (lokal testen)',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFF0C000),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFF0C000)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Regelwerk
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: () => context.push('/rules'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF8B949E),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(Icons.menu_book, size: 18),
-                    label: const Text(
-                      'Regelwerk lesen',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Trainingsdaten sammeln
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/collect'),
-                    icon: const Icon(Icons.science, size: 16, color: Color(0xFF58A6FF)),
-                    label: const Text(
-                      'Trainingsdaten sammeln (Beta)',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF58A6FF)),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF58A6FF)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // How it works
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF161B22),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF30363D)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'So funktioniert\'s',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _ruleRow(Icons.people, '4 Spieler an einem Tisch'),
-                      _ruleRow(Icons.qr_code, 'QR-Code zum Beitreten'),
-                      _ruleRow(Icons.camera_alt, 'Steine scannen (optional)'),
-                      _ruleRow(Icons.score, 'Strafpunkte automatisch berechnet'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _ruleRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: const Color(0xFF58A6FF)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Custom logo: 4 Okey stones (tiles) + camera icon overlaid
-  Widget _buildLogo() {
-    return SizedBox(
-      width: 120,
-      height: 90,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            left: 0,
-            child: _tile(const Color(0xFFF0C000), '8', 34),
-          ),
-          Positioned(
-            left: 26,
-            child: _tile(const Color(0xFF1F6FEB), '13', 34),
-          ),
-          Positioned(
-            left: 52,
-            child: _tile(const Color(0xFFDA3633), '7', 34),
-          ),
-          Positioned(
-            left: 78,
-            child: _tile(const Color(0xFF6E7681), '3', 34),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFF161B22),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF30363D), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.camera_alt,
-                color: Color(0xFFF0C000),
-                size: 20,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tile(Color color, String number, double size) {
-    return Container(
-      width: size,
-      height: size * 1.35,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 3,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          number,
-          style: TextStyle(
-            color: color == const Color(0xFFF0C000) || color == const Color(0xFF6E7681)
-                ? Colors.black
-                : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
       ),
     );
   }
