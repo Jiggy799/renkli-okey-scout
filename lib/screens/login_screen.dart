@@ -1,16 +1,15 @@
 // lib/screens/login_screen.dart
-// RenkliOkeyScout — Login-Screen
+// RenkliOkeyScout — Login Screen (MINIMAL)
 //
-// Auth-Methoden:
-//   1. Anonym spielen (Primary, funktioniert sofort)
-//   2. Email Magic Link (echte Auth, kein Setup nötig)
-//   3. Mit Google anmelden (UI da, OAuth optional)
-//   4. Mit Apple anmelden (TODO)
+// ZWEI Optionen:
+// 1. Mit Google anmelden (PRIMARY, gross)
+// 2. Anonym spielen (SECONDARY, klein)
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/auth_service.dart';
+import '../services/google_auth_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,12 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = AuthService();
   bool _isLoading = false;
   String? _error;
-  String? _info;
+
   Future<void> _signIn(Future<void> Function() signInFn) async {
     setState(() {
       _isLoading = true;
       _error = null;
-      _info = null;
     });
     try {
       await signInFn();
@@ -42,6 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasGoogleKey = GoogleAuthConfig.isConfigured;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: SafeArea(
@@ -51,51 +51,60 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Logo
                 const Text(
-                  'O K E Y',
+                  'OKEY',
                   style: TextStyle(
-                    fontSize: 48,
+                    color: Colors.white,
+                    fontSize: 56,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 8,
-                    color: Color(0xFF30363D),
+                    letterSpacing: 16,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'RenkliOkeyScout',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Dein Okey-Score-Begleiter',
                   style: TextStyle(color: Color(0xFF8B949E), fontSize: 14),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
 
-                // PRIMARY: Anonym spielen
-                AuthButton(
-                  icon: Icons.play_arrow,
-                  label: 'Anonym spielen (sofort loslegen)',
-                  color: const Color(0xFF238636),
-                  onPressed: _isLoading
-                      ? null
-                      : () => _signIn(() async {
-                            await _auth.signInAnonymously();
-                          }),
-                ),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    'Funktioniert ohne Konfig. Später kannst du dein Konto upgraden.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF8B949E), fontSize: 11),
+                // PRIMARY: Mit Google anmelden
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: hasGoogleKey && !_isLoading
+                        ? () => _signIn(() async {
+                              await _auth.signInWithGoogle();
+                            })
+                        : null,
+                    icon: const Icon(Icons.login, color: Colors.white, size: 22),
+                    label: const Text(
+                      'Mit Google anmelden',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4285F4),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFF30363D),
+                      disabledForegroundColor: const Color(0xFF6E7681),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
+
+                if (!hasGoogleKey) ...[
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Google OAuth noch nicht konfiguriert.\nSiehe GOOGLE_OAUTH_SETUP.md',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFFF0C000), fontSize: 11),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
                 // Divider
@@ -105,57 +114,50 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'oder mit Email',
+                        'oder',
                         style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
                       ),
                     ),
                     Expanded(child: Divider(color: Color(0xFF30363D))),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-                // Google Sign-In (PRIMARY)
-                AuthButton(
-                  icon: Icons.login,
-                  label: 'Mit Google anmelden',
-                  color: const Color(0xFF4285F4),
-                  onPressed: _isLoading
-                      ? null
-                      : () => _signIn(() async {
-                            await _auth.signInWithGoogle();
-                          }),
-                ),
-                const SizedBox(height: 12),
-
-                // Apple Sign-In (TODO)
-                AuthButton(
-                  icon: Icons.apple,
-                  label: 'Mit Apple anmelden (bald verfügbar)',
-                  color: const Color(0xFF8B949E),
-                  onPressed: null,
-                ),
-
-                // Info (Magic Link sent)
-                if (_info != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3FB950).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF3FB950)),
+                // SECONDARY: Anonym spielen
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _signIn(() async {
+                              await _auth.signInAnonymously();
+                            }),
+                    icon: const Icon(Icons.person_outline, color: Color(0xFF8B949E)),
+                    label: const Text(
+                      'Anonym spielen',
+                      style: TextStyle(fontSize: 14),
                     ),
-                    child: Text(
-                      _info!,
-                      style: const TextStyle(color: Color(0xFF3FB950), fontSize: 12),
-                      textAlign: TextAlign.center,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF30363D)),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Kein Account nötig. Spieler_XXXX als Name.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFF6E7681), fontSize: 11),
+                  ),
+                ),
 
                 // Fehler
                 if (_error != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -175,13 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   const CircularProgressIndicator(color: Color(0xFF58A6FF)),
                 ],
-
-                const SizedBox(height: 24),
-                const Text(
-                  'Mit dem Anmelden werden dein Benutzername\nund Avatar gespeichert.',
-                  style: TextStyle(color: Color(0xFF8B949E), fontSize: 11),
-                  textAlign: TextAlign.center,
-                ),
               ],
             ),
           ),
@@ -189,5 +184,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
 }
