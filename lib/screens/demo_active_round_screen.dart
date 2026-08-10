@@ -1,4 +1,5 @@
 // lib/screens/demo_active_round_screen.dart
+import "dart:io";
 // RenkliOkeyScout — Active Round (ANTI-CHEAT + praktisch)
 //
 // ANTI-CHEAT DESIGN:
@@ -20,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../demo/demo_state.dart';
+import '../services/gemini_vision_service.dart';
 import '../utils/score_calculator.dart';
 
 class DemoActiveRoundScreen extends StatefulWidget {
@@ -77,7 +79,7 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'DEMO-MODUS: KI-Erkennung ist ein Stub. Steine sind zufällig.',
+                      'GEMINI VISION: KI-Erkennung aktiv (Internet nötig).',
                       style: TextStyle(
                         color: const Color(0xFFF0C000).withValues(alpha: 0.9),
                         fontSize: 11,
@@ -217,56 +219,53 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
     );
   }
 
+  final _gemini = GeminiVisionService();
+
+  /// Foto aufnehmen + automatische Erkennung via Gemini Vision Pro
   Future<void> _takePhotoAndClassify(DemoPlayer player) async {
-    try {
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 70,
-        maxWidth: 1024,
+    // 1. Foto aufnehmen
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+      maxWidth: 1024,
+    );
+    if (photo == null) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🤖 Gemini Vision analysiert Foto...'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF1F6FEB),
+        ),
       );
-      if (photo == null) return;
-
-      setState(() {
-        player.photoSubmitted = true;
-        // HEURISTIK (Stub): 4-8 zufällige Schrott-Steine
-        final rng = DateTime.now().millisecondsSinceEpoch;
-        final numTiles = 4 + (rng % 5);
-        final tiles = <Tile>[];
-        for (int i = 0; i < numTiles; i++) {
-          final c = TileColor.values[(rng + i * 3) % 4];
-          final n = 1 + ((rng + i * 7) % 13);
-          tiles.add(Tile(c, n));
-        }
-        player.schrottTiles = tiles;
-      });
-
-      if (mounted) {
-        final sum = player.schrottSum;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              '⚠ DEMO-MODUS: Zufällige Steine generiert — echte KI-Erkennung kommt bald',
-            ),
-            duration: const Duration(seconds: 4),
-            backgroundColor: const Color(0xFFF0C000),
-            action: SnackBarAction(
-              label: 'Verstanden',
-              textColor: Colors.black,
-              onPressed: () {},
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Foto fehlgeschlagen: $e'),
-            backgroundColor: const Color(0xFFDA3633),
-          ),
-        );
-      }
     }
+
+    // 2. Gemini Vision aufrufen
+    final gosterge = _demo.currentGostergeTile;
+    final tiles = await _gemini.recognizeSchrott(
+      photo: File(photo.path),
+      gosterge: gosterge,
+    );
+
+    if (!mounted) return;
+
+    // 3. Result anzeigen
+    setState(() {
+      player.photoSubmitted = true;
+      player.schrottTiles = tiles;
+    });
+
+    final sum = player.schrottSum;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '✓ Gemini: ${tiles.length} Steine erkannt (Summe: $sum)',
+        ),
+        duration: const Duration(seconds: 3),
+        backgroundColor: const Color(0xFF3FB950),
+      ),
+    );
   }
 }
 
