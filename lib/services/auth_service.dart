@@ -33,10 +33,13 @@ class AuthService {
   Future<AuthResponse> signInWithGoogle() async {
     // Web-Client-ID (für ID-Token, nicht für OAuth-Web-Flow).
     // Wird in der Google Cloud Console unter "OAuth 2.0 Client IDs" erstellt.
+    // User muss ECHTE Client ID in google-services.json setzen.
     final googleSignIn = GoogleSignIn(
       scopes: ['email', 'profile'],
-      serverClientId:
-          '808318424305-4d7jsbnlgvq2u1t3r7gqht9m77vc9v79.apps.googleusercontent.com', // PLACEHOLDER
+      serverClientId: const String.fromEnvironment(
+        'GOOGLE_WEB_CLIENT_ID',
+        defaultValue: '808318424305-4d7jsbnlgvq2u1t3r7gqht9m77vc9v79.apps.googleusercontent.com',
+      ),
     );
 
     final googleUser = await googleSignIn.signIn();
@@ -128,17 +131,22 @@ class AuthService {
   }
 
   /// Username aus Auth-Metadaten holen.
+  /// Für anonyme User: Kurze eindeutige ID (8 Zeichen) damit Username UNIQUE constraint nicht verletzt.
   String get displayName {
     final user = currentUser;
     if (user == null) return 'Gast';
 
     final meta = user.userMetadata;
-    if (meta == null) return 'Spieler';
+    if (meta != null && meta['full_name'] != null) return meta['full_name'];
+    if (meta != null && meta['name'] != null) return meta['name'];
+    if (meta != null && meta['email'] != null) {
+      return meta['email'].toString().split('@').first;
+    }
 
-    return meta['full_name'] ??
-        meta['name'] ??
-        meta['email']?.toString().split('@').first ??
-        'Spieler';
+    // Anonym: eindeutige ID aus User-ID ableiten
+    // Erste 8 Zeichen der UUID = garantiert eindeutig pro User
+    final shortId = user.id.replaceAll('-', '').substring(0, 8);
+    final name = 'Spieler_' + shortId; return name;
   }
 
   /// Avatar-URL aus Auth-Metadaten holen.

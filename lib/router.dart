@@ -58,13 +58,18 @@ final router = GoRouter(
     final isLogin = loc == '/login';
     final isNickname = loc == '/nickname';
     final isDemo = loc.startsWith('/demo');
+    final isRules = loc == '/rules';
+    final isSettings = loc == '/settings';
+
+    // Öffentliche Routen — immer erlaubt, kein Redirect
+    if (isLogin || isRules || isSettings) return null;
 
     // Nicht angemeldet → Login (außer Demo ist erlaubt)
-    if (user == null && !isLogin && !isDemo) {
+    if (user == null && !isDemo) {
       return '/login';
     }
     // Anonymer User → direkt zum Home (kein Login nötig, kein Account-Upgrade möglich)
-    if (user != null && user.isAnonymous && !isLogin && !isDemo) {
+    if (user != null && user.isAnonymous && !isDemo) {
       return '/';
     }
     // Angemeldet aber auf /login → Nickname (oder Home wenn schon gesetzt)
@@ -73,7 +78,7 @@ final router = GoRouter(
       return '/';
     }
     // Angemeldet, hat aber keinen Nickname → /nickname
-    if (user != null && !isNickname && !isLogin && !isDemo) {
+    if (user != null && !isNickname && !isDemo) {
       if (await _needsNickname()) return '/nickname';
     }
     // Auf /nickname aber Nickname existiert schon → /

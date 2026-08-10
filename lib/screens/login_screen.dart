@@ -24,9 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _error;
   String? _info;
-  bool _showMagicLink = false;
-  final _emailController = TextEditingController();
-
   Future<void> _signIn(Future<void> Function() signInFn) async {
     setState(() {
       _isLoading = true;
@@ -41,37 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _sendMagicLink() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Bitte gültige Email eingeben');
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _info = null;
-    });
-    try {
-      await _auth.signInWithMagicLink(email);
-      if (mounted) {
-        setState(() {
-          _info = '✓ Magic Link gesendet! Prüfe dein Email-Postfach und klicke den Link.';
-        });
-      }
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
   }
 
   @override
@@ -148,42 +114,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Email Magic Link
-                if (!_showMagicLink)
-                  AuthButton(
-                    icon: Icons.email_outlined,
-                    label: 'Email Magic Link',
-                    color: const Color(0xFF1F6FEB),
-                    onPressed: _isLoading
-                        ? null
-                        : () => setState(() => _showMagicLink = true),
-                  )
-                else
-                  _buildMagicLinkForm(),
-
-                const SizedBox(height: 24),
-
-                // Divider
-                Row(
-                  children: const [
-                    Expanded(child: Divider(color: Color(0xFF30363D))),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'oder mit Konto',
-                        style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: Color(0xFF30363D))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Google Sign-In (funktioniert erst nach OAuth-Setup)
+                // Google Sign-In (PRIMARY)
                 AuthButton(
                   icon: Icons.login,
                   label: 'Mit Google anmelden',
-                  color: const Color(0xFF4285F4).withValues(alpha: 0.4),
+                  color: const Color(0xFF4285F4),
                   onPressed: _isLoading
                       ? null
                       : () => _signIn(() async {
@@ -255,86 +190,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildMagicLinkForm() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1F6FEB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.email_outlined, color: Color(0xFF1F6FEB), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Email Magic Link',
-                style: TextStyle(
-                  color: Color(0xFF1F6FEB),
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Wir schicken dir einen Login-Link per Email.\nKeine Passwörter, kein Setup.',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 11, height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _emailController,
-            enabled: !_isLoading,
-            keyboardType: TextInputType.emailAddress,
-            autocorrect: false,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'deine@email.de',
-              hintStyle: const TextStyle(color: Color(0xFF6E7681)),
-              prefixIcon: const Icon(Icons.alternate_email, color: Color(0xFF8B949E)),
-              filled: true,
-              fillColor: const Color(0xFF0D1117),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF30363D)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF30363D)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF1F6FEB), width: 2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: AuthButton(
-                  icon: Icons.send,
-                  label: 'Magic Link senden',
-                  color: const Color(0xFF1F6FEB),
-                  onPressed: _isLoading ? null : _sendMagicLink,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFF8B949E)),
-                onPressed: () => setState(() {
-                  _showMagicLink = false;
-                  _emailController.clear();
-                }),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -15,6 +15,14 @@ import 'package:image/image.dart' as img;
 
 import '../utils/score_calculator.dart';
 
+/// Erkannter Stein mit Konfidenz
+class RecognizedTile {
+  final Tile tile;
+  final double confidence;
+
+  const RecognizedTile({required this.tile, required this.confidence});
+}
+
 class GeminiVisionService {
   // Gemini API-Key wird zur Laufzeit gesetzt via initialize()
   // User muss den Key einmalig eingeben (über Settings-Screen)
@@ -38,13 +46,13 @@ class GeminiVisionService {
   /// Erkennt Schrott-Steine aus einem Foto via Gemini Vision.
   ///
   /// Returns: Liste der (erkannten) Schrott-Steine
-  Future<List<Tile>> recognizeSchrott({
+  Future<List<RecognizedTile>> recognizeSchrott({
     required File photo,
     required Tile gosterge,
   }) async {
     if (_apiKey.isEmpty) {
       debugPrint('[GeminiVision] No API key set. User must configure in Settings.');
-      return _fallbackTiles(gosterge);
+      return _fallbackRecognizedTiles(gosterge);
     }
     try {
       // 1. Bild komprimieren (max 1024px, JPEG 75%)
@@ -86,7 +94,7 @@ class GeminiVisionService {
 
       if (response.statusCode != 200) {
         debugPrint('[GeminiVision] HTTP ${response.statusCode}: ${response.body.substring(0, response.body.length.clamp(0, 200))}');
-        return _fallbackTiles(gosterge);
+        return _fallbackRecognizedTiles(gosterge);
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -97,7 +105,7 @@ class GeminiVisionService {
       return _parseTiles(text, gosterge);
     } catch (e) {
       debugPrint('[GeminiVision] Error: $e');
-      return _fallbackTiles(gosterge);
+      return _fallbackRecognizedTiles(gosterge);
     }
   }
 
@@ -119,8 +127,8 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no explanation):
 Use lowercase color names. Numbers 1-13 only.''';
   }
 
-  /// Parst die Gemini-Antwort in eine Liste von Tiles.
-  List<Tile> _parseTiles(String response, Tile gosterge) {
+  /// Parst die Gemini-Antwort in eine Liste von Tiles mit Confidence.
+  List<RecognizedTile> _parseTiles(String response, Tile gosterge) {
     try {
       // Gemini wraps sometimes in markdown code blocks
       String jsonText = response.trim();
@@ -143,9 +151,10 @@ Use lowercase color names. Numbers 1-13 only.''';
       final tilesJson = data['tiles'] as List<dynamic>? ?? [];
 
 
-      final tiles = <Tile>[];
-      for (final t in tilesJson) {
+      final tiles = <RecognizedTile>[];
+      for (int i = 0; i < tilesJson.length; i++) {
         try {
+          final t = tilesJson[i];
           final colorStr = (t['color'] as String).toLowerCase();
           final number = t['number'] as int;
           if (number < 1 || number > 13) continue;
@@ -154,31 +163,40 @@ Use lowercase color names. Numbers 1-13 only.''';
             (c) => c.name.toLowerCase() == colorStr,
             orElse: () => TileColor.yellow,
           );
-          tiles.add(Tile(color, number));
+          // Higher confidence for tiles with clear color+number
+          // Lower if color was fallback to yellow
+          double conf = 0.9;
+          if (color == TileColor.yellow && colorStr != 'yellow') conf = 0.6;
+          if (number < 1 || number > 13) conf = 0.3;
+          tiles.add(RecognizedTile(tile: Tile(color, number), confidence: conf));
         } catch (_) {
           // skip invalid tile
         }
       }
 
-      return tiles.isEmpty ? _fallbackTiles(gosterge) : tiles;
+      return tiles.isEmpty ? _fallbackRecognizedTiles(gosterge) : tiles;
     } catch (e) {
       debugPrint('[GeminiVision] Parse error: $e');
-      return _fallbackTiles(gosterge);
+      return _fallbackRecognizedTiles(gosterge);
     }
   }
 
   /// Fallback wenn Gemini nicht antwortet
-  List<Tile> _fallbackTiles(Tile gosterge) {
-    // Realistisch: 4-8 Schrott-Steine
+  List<RecognizedTile> _fallbackRecognizedTiles(Tile gosterge) {
     final rng = DateTime.now().millisecondsSinceEpoch;
     final numTiles = 5 + (rng % 4);
-    final tiles = <Tile>[];
+    final tiles = <RecognizedTile>[];
     for (int i = 0; i < numTiles; i++) {
       final c = TileColor.values[(rng + i * 3) % 4];
       final n = 1 + ((rng + i * 7) % 13);
-      tiles.add(Tile(c, n));
+      tiles.add(RecognizedTile(tile: Tile(c, n), confidence: 0.3));  // Low confidence!
     }
     return tiles;
+  }
+
+  /// Backwards-compatible: convert RecognizedTile → Tile
+  static List<Tile> recognizedToTiles(List<RecognizedTile> recognized) {
+    return recognized.map((r) => r.tile).toList();
   }
 
   /// Bild komprimieren für Gemini (max ~4MB inline)

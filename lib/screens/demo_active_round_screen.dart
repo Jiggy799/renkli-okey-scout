@@ -262,10 +262,15 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
 
     // 3. Gemini Vision aufrufen
     final gosterge = _demo.currentGostergeTile;
-    final tiles = await _gemini.recognizeSchrott(
+    final recognized = await _gemini.recognizeSchrott(
       photo: File(photo.path),
       gosterge: gosterge,
     );
+    final tiles = GeminiVisionService.recognizedToTiles(recognized);
+    final avgConfidence = recognized.isEmpty
+        ? 0.0
+        : recognized.map((r) => r.confidence).reduce((a, b) => a + b) / recognized.length;
+    final confidenceText = (avgConfidence * 100).toStringAsFixed(0);
 
     // 4. Persistenz speichern (Anti-Cheat: evidence + score)
     await DemoPersistence.save(_demo);
@@ -286,7 +291,11 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
           '✓ Gemini: ${tiles.length} Steine erkannt (Summe: $sum)',
         ),
         duration: const Duration(seconds: 3),
-        backgroundColor: const Color(0xFF3FB950),
+        backgroundColor: avgConfidence > 0.7
+            ? const Color(0xFF3FB950)
+            : avgConfidence > 0.4
+                ? const Color(0xFFF0C000)
+                : const Color(0xFFDA3633),
       ),
     );
   }
