@@ -2,7 +2,10 @@
 // RenkliOkeyScout — Settings / Profile screen
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../services/gemini_vision_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,12 +17,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _username;
   String? _email;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
 
   Future<void> _loadProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -149,12 +146,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
+          // Gemini API Key
+          const Text(
+            'KI-Erkennung',
+            style: TextStyle(
+              color: Color(0xFF8B949E),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _geminiKeyCard(),
+
+          const SizedBox(height: 24),
+
           // App info
           const Center(
             child: Text(
-              'RenkliOkeyScout v1.0.0',
+              'RenkliOkeyScout v2.2.0',
               style: TextStyle(color: Color(0xFF484F58), fontSize: 12),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _geminiKey;
+  bool _keyVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+    _loadGeminiKey();
+  }
+
+  Future<void> _loadGeminiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = prefs.getString('gemini_api_key') ?? '';
+    if (key.isNotEmpty) {
+      GeminiVisionService.initialize(key);
+    }
+    if (mounted) setState(() => _geminiKey = key.isEmpty ? null : key);
+  }
+
+  Future<void> _saveGeminiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (key.isEmpty) {
+      await prefs.remove('gemini_api_key');
+    } else {
+      await prefs.setString('gemini_api_key', key);
+      GeminiVisionService.initialize(key);
+    }
+    if (mounted) setState(() => _geminiKey = key.isEmpty ? null : key);
+  }
+
+  Widget _geminiKeyCard() {
+    final hasKey = _geminiKey != null && _geminiKey!.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasKey ? const Color(0xFF3FB950) : const Color(0xFFF0C000),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                hasKey ? Icons.check_circle : Icons.key,
+                color: hasKey ? const Color(0xFF3FB950) : const Color(0xFFF0C000),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Gemini API-Key',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (hasKey)
+                IconButton(
+                  icon: Icon(_keyVisible ? Icons.visibility_off : Icons.visibility),
+                  color: const Color(0xFF8B949E),
+                  onPressed: () => setState(() => _keyVisible = !_keyVisible),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hasKey
+                ? 'Key gesetzt — Foto-Erkennung aktiv'
+                : 'Ohne Key: Stub-Heuristik (zufällige Steine).',
+            style: TextStyle(
+              color: hasKey ? const Color(0xFF3FB950) : const Color(0xFFF0C000),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            initialValue: _geminiKey ?? '',
+            obscureText: !_keyVisible,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'AIza... oder AQ.Ab...',
+              hintStyle: const TextStyle(color: Color(0xFF6E7681)),
+              prefixIcon: const Icon(Icons.key, color: Color(0xFF8B949E), size: 18),
+              filled: true,
+              fillColor: const Color(0xFF0D1117),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF30363D)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF30363D)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1F6FEB), width: 2),
+              ),
+            ),
+            onFieldSubmitted: _saveGeminiKey,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _saveGeminiKey(''),
+                  child: const Text('Löschen'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    final controller = TextEditingController(text: _geminiKey ?? '');
+                    showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        return AlertDialog(
+                          backgroundColor: const Color(0xFF161B22),
+                          title: const Text('Gemini API-Key', style: TextStyle(color: Colors.white)),
+                          content: TextField(
+                            controller: controller,
+                            autofocus: true,
+                            obscureText: true,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'Gemini API-Key hier einfügen',
+                              hintStyle: TextStyle(color: Color(0xFF6E7681)),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Abbrechen'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                _saveGeminiKey(controller.text.trim());
+                                Navigator.pop(ctx);
+                              },
+                              child: const Text('Speichern'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: const Text('Key ändern'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Key holen: aistudio.google.com/app/apikey (kostenlos)',
+            style: TextStyle(color: Color(0xFF6E7681), fontSize: 11),
           ),
         ],
       ),
