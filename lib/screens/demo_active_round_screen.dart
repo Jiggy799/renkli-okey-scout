@@ -21,7 +21,9 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../demo/demo_state.dart';
+import '../services/demo_persistence.dart';
 import '../services/gemini_vision_service.dart';
+import '../services/photo_storage_service.dart';
 import '../utils/score_calculator.dart';
 
 class DemoActiveRoundScreen extends StatefulWidget {
@@ -220,6 +222,15 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
   }
 
   final _gemini = GeminiVisionService();
+  final _photoStorage = PhotoStorageService();
+  String? _photoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _demo.simulateAIPenalties();
+    DemoPersistence.save(_demo);  // Initial save
+  }
 
   /// Foto aufnehmen + automatische Erkennung via Gemini Vision Pro
   Future<void> _takePhotoAndClassify(DemoPlayer player) async {
@@ -234,19 +245,31 @@ class _DemoActiveRoundScreenState extends State<DemoActiveRoundScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🤖 Gemini Vision analysiert Foto...'),
+          content: Text('🤖 Gemini Vision analysiert Foto + Upload...'),
           duration: Duration(seconds: 2),
           backgroundColor: Color(0xFF1F6FEB),
         ),
       );
     }
 
-    // 2. Gemini Vision aufrufen
+    // 2. Foto zu Supabase Storage hochladen (BEWEIS)
+    _photoUrl = await _photoStorage.uploadPhoto(
+      photo: File(photo.path),
+      tableId: 'demo',
+      roundNumber: _demo.currentRound,
+      playerId: player.id,
+    );
+
+    // 3. Gemini Vision aufrufen
     final gosterge = _demo.currentGostergeTile;
     final tiles = await _gemini.recognizeSchrott(
       photo: File(photo.path),
       gosterge: gosterge,
     );
+
+    // 4. Persistenz speichern (Anti-Cheat: evidence + score)
+    await DemoPersistence.save(_demo);
+    _photoUrl = null;
 
     if (!mounted) return;
 
