@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'google_auth_config.dart';
+
 class AuthService {
   final _supabase = Supabase.instance.client;
 
@@ -36,10 +38,7 @@ class AuthService {
     // User muss ECHTE Client ID in google-services.json setzen.
     final googleSignIn = GoogleSignIn(
       scopes: ['email', 'profile'],
-      serverClientId: const String.fromEnvironment(
-        'GOOGLE_WEB_CLIENT_ID',
-        defaultValue: '808318424305-4d7jsbnlgvq2u1t3r7gqht9m77vc9v79.apps.googleusercontent.com',
-      ),
+      serverClientId: GoogleAuthConfig.webClientId,
     );
 
     final googleUser = await googleSignIn.signIn();
