@@ -62,15 +62,13 @@ final router = GoRouter(
     final isSettings = loc == '/settings';
 
     // Öffentliche Routen — immer erlaubt, kein Redirect
-    if (isLogin || isRules || isSettings) return null;
+    if (isRules || isSettings) return null;
+    // Anonymer User darf /login sehen (kann anonym upgraden oder neu anmelden)
+    if (user != null && user.isAnonymous && isLogin) return null;
 
     // Nicht angemeldet → Login (außer Demo ist erlaubt)
     if (user == null && !isDemo) {
       return '/login';
-    }
-    // Anonymer User → direkt zum Home (kein Login nötig, kein Account-Upgrade möglich)
-    if (user != null && user.isAnonymous && !isDemo) {
-      return '/';
     }
     // Angemeldet aber auf /login → Nickname (oder Home wenn schon gesetzt)
     if (user != null && isLogin) {

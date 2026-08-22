@@ -28,6 +28,9 @@ class AuthService {
   /// Bereits angemeldet?
   bool get isSignedIn => currentUser != null;
 
+  /// Ist der aktuelle User anonym?
+  bool get isAnonymousUser => currentUser?.isAnonymous ?? false;
+
   /// Google Sign-In (native auf Android, OAuth-Web-Flow auf iOS).
   ///
   /// Voraussetzung: SHA-1 Fingerprint + Web-Client-ID in Supabase

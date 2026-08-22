@@ -32,6 +32,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await signInFn();
       if (mounted) context.go('/');
     } catch (e) {
+      // Already anonymous user tried signInAnonymously again
+      if (e.toString().contains('anonymous')) {
+        if (mounted) context.go('/');
+        return;
+      }
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -123,28 +128,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // SECONDARY: Anonym spielen
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () => _signIn(() async {
-                              await _auth.signInAnonymously();
-                            }),
-                    icon: const Icon(Icons.person_outline, color: Color(0xFF8B949E)),
-                    label: const Text(
-                      'Anonym spielen',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF30363D)),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                // SECONDARY: Anonym spielen (nur wenn NICHT schon anonymous)
+                if (!_auth.isAnonymousUser)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () => _signIn(() async {
+                                await _auth.signInAnonymously();
+                              }),
+                      icon: const Icon(Icons.person_outline, color: Color(0xFF8B949E)),
+                      label: const Text(
+                        'Anonym spielen',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF30363D)),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 8),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
