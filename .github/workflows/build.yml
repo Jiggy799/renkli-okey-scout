@@ -27,6 +27,8 @@ jobs:
           android: true
           android-sdk-version: '36.0.0'
 
+      - run: flutter clean
+
       - run: flutter pub get
 
       - run: flutter build apk --debug
