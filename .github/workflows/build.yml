@@ -27,11 +27,19 @@ jobs:
           android: true
           android-sdk-version: '36.0.0'
 
-      - run: flutter clean
+      - name: Full clean
+        run: |
+          flutter clean
+          rm -rf android/.gradle
+          rm -rf android/app/build
+          rm -rf build
+          rm -rf ~/.gradle/caches
 
-      - run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-      - run: flutter build apk --debug
+      - name: Build APK
+        run: flutter build apk --debug
 
       - uses: actions/upload-artifact@v4
         with:
